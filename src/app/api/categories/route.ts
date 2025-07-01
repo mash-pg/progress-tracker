@@ -16,8 +16,7 @@ async function readCategories(): Promise<Category[]> {
     return JSON.parse(data);
   } catch (error: unknown) { // unknown型で捕捉
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') { // 型ガードを追加
-      // Vercel環境ではファイル書き込みができないため、空の配列を返す
-      // await fs.writeFile(categoriesFilePath, JSON.stringify([]));
+      await fs.writeFile(categoriesFilePath, JSON.stringify([]));
       return [];
     }
     throw error;
@@ -25,8 +24,7 @@ async function readCategories(): Promise<Category[]> {
 }
 
 async function writeCategories(categories: Category[]): Promise<void> {
-  // Vercel環境ではファイル書き込みができないため、何もしない
-  // await fs.writeFile(categoriesFilePath, JSON.stringify(categories, null, 2));
+  await fs.writeFile(categoriesFilePath, JSON.stringify(categories, null, 2));
 }
 
 export async function GET() {
@@ -35,6 +33,20 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  // Vercel環境ではファイル書き込みができないため、ダミーの成功レスポンスを返すか、エラーを返す
-  return NextResponse.json({ message: 'Category creation is disabled in this environment.' }, { status: 501 });
+  const { name } = await request.json();
+
+  if (!name) {
+    return NextResponse.json({ message: 'Category name is required' }, { status: 400 });
+  }
+
+  const newCategory: Category = {
+    id: uuidv4(),
+    name,
+  };
+
+  const categories = await readCategories();
+  categories.push(newCategory);
+  await writeCategories(categories);
+
+  return NextResponse.json(newCategory, { status: 201 });
 }

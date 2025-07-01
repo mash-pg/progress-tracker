@@ -110,7 +110,7 @@ export default function TaskItem({ task, onEditTask, onTaskChange, onStatusUpdat
   const categoryName = task.categoryId && categories ? categories.find(cat => cat.id === task.categoryId)?.name : '未分類';
 
   return (
-    <div className="task-item bg-white border border-gray-200 rounded-lg p-2 flex flex-col shadow-sm hover:shadow-md transition duration-300 ease-in-out dark:bg-gray-800 dark:border-gray-700">
+    <div className="task-item bg-white border border-gray-200 rounded-lg p-2 flex flex-col shadow-sm hover:shadow-md transition duration-300 ease-in-out dark:bg-gray-800 dark:border-gray-700 min-h-[100px]"> {/* min-hを追加 */}
       <div className="flex-grow cursor-pointer" onClick={() => onEditTask(task)}>
         <h3 className="text-sm font-semibold text-gray-800 mb-0.5 dark:text-gray-100 truncate">{task.name}</h3>
         <p className="text-xs text-gray-600 dark:text-gray-300">カテゴリ: {categoryName}</p>

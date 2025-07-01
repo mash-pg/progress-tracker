@@ -3302,5 +3302,20 @@
     "createdAt": "2025-07-01T19:58:15.219Z",
     "dueDate": "2025-07-01",
     "categoryId": "cat-general"
+  },
+  {
+    "id": "d60312b5-c02f-4112-9ead-1e1323946084",
+    "name": "あｓｄふぁｓｄ",
+    "status": "todo",
+    "createdAt": "2025-07-01T20:04:07.231Z",
+    "dueDate": "2025-07-01"
+  },
+  {
+    "id": "a63dc7c8-aa86-40df-908e-85c48672c5e2",
+    "name": "あｓｄふぁｓｄｆ",
+    "status": "todo",
+    "createdAt": "2025-07-01T20:04:51.512Z",
+    "dueDate": "2025-07-18",
+    "categoryId": "cat-javasilver"
   }
 ]

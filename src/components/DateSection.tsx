@@ -88,11 +88,13 @@ export default function DateSection({
               <TaskItem key={task.id} task={task} onEditTask={onEditTask} onTaskChange={onTaskChange} onStatusUpdate={onStatusUpdate} categories={categories} />
             ))}
             {totalTaskPages > 1 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalTaskPages}
-                onPageChange={setCurrentPage}
-              />
+              <div className="flex justify-center mt-4 space-x-1 text-xs">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalTaskPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
             )}
           </div>
         ) : (

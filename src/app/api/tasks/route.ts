@@ -20,8 +20,7 @@ async function readTasks(): Promise<Task[]> {
     return JSON.parse(data);
   } catch (error: unknown) { // unknown型で捕捉
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') { // 型ガードを追加
-      // Vercel環境ではファイル書き込みができないため、空の配列を返す
-      // await fs.writeFile(tasksFilePath, JSON.stringify([]));
+      await fs.writeFile(tasksFilePath, JSON.stringify([]));
       return [];
     }
     throw error;
@@ -29,8 +28,7 @@ async function readTasks(): Promise<Task[]> {
 }
 
 async function writeTasks(tasks: Task[]): Promise<void> {
-  // Vercel環境ではファイル書き込みができないため、何もしない
-  // await fs.writeFile(tasksFilePath, JSON.stringify(tasks, null, 2));
+  await fs.writeFile(tasksFilePath, JSON.stringify(tasks, null, 2));
 }
 
 export async function GET(request: Request) {
@@ -58,6 +56,24 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  // Vercel環境ではファイル書き込みができないため、ダミーの成功レスポンスを返すか、エラーを返す
-  return NextResponse.json({ message: 'Task creation is disabled in this environment.' }, { status: 501 });
+  const { name, dueDate, categoryId } = await request.json();
+
+  if (!name || !dueDate) {
+    return NextResponse.json({ message: 'Name and dueDate are required' }, { status: 400 });
+  }
+
+  const newTask: Task = {
+    id: uuidv4(),
+    name,
+    status: 'todo',
+    createdAt: new Date().toISOString(),
+    dueDate,
+    categoryId,
+  };
+
+  const tasks = await readTasks();
+  tasks.push(newTask);
+  await writeTasks(tasks);
+
+  return NextResponse.json(newTask, { status: 201 });
 }

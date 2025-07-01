@@ -25,8 +25,7 @@ async function readCategories(): Promise<Category[]> {
     return JSON.parse(data);
   } catch (error: unknown) { // unknown型で捕捉
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') { // 型ガードを追加
-      // Vercel環境ではファイル書き込みができないため、空の配列を返す
-      // await fs.writeFile(categoriesFilePath, JSON.stringify([]));
+      await fs.writeFile(categoriesFilePath, JSON.stringify([]));
       return [];
     }
     throw error;
@@ -34,8 +33,7 @@ async function readCategories(): Promise<Category[]> {
 }
 
 async function writeCategories(categories: Category[]): Promise<void> {
-  // Vercel環境ではファイル書き込みができないため、何もしない
-  // await fs.writeFile(categoriesFilePath, JSON.stringify(categories, null, 2));
+  await fs.writeFile(categoriesFilePath, JSON.stringify(categories, null, 2));
 }
 
 async function readTasks(): Promise<Task[]> {
@@ -44,8 +42,7 @@ async function readTasks(): Promise<Task[]> {
     return JSON.parse(data);
   } catch (error: unknown) { // unknown型で捕捉
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') { // 型ガードを追加
-      // Vercel環境ではファイル書き込みができないため、空の配列を返す
-      // await fs.writeFile(tasksFilePath, JSON.stringify([]));
+      await fs.writeFile(tasksFilePath, JSON.stringify([]));
       return [];
     }
     throw error;
@@ -53,16 +50,45 @@ async function readTasks(): Promise<Task[]> {
 }
 
 async function writeTasks(tasks: Task[]): Promise<void> {
-  // Vercel環境ではファイル書き込みができないため、何もしない
-  // await fs.writeFile(tasksFilePath, JSON.stringify(tasks, null, 2));
+  await fs.writeFile(tasksFilePath, JSON.stringify(tasks, null, 2));
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  // Vercel環境ではファイル書き込みができないため、ダミーの成功レスポンスを返すか、エラーを返す
-  return NextResponse.json({ message: 'Category update is disabled in this environment.' }, { status: 501 });
+  const { id } = params;
+  const updatedCategoryData = await request.json();
+
+  const categories = await readCategories();
+  const categoryIndex = categories.findIndex(cat => cat.id === id);
+
+  if (categoryIndex === -1) {
+    return NextResponse.json({ message: 'Category not found' }, { status: 404 });
+  }
+
+  categories[categoryIndex] = { ...categories[categoryIndex], ...updatedCategoryData };
+  await writeCategories(categories);
+
+  return NextResponse.json(categories[categoryIndex]);
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  // Vercel環境ではファイル書き込みができないため、ダミーの成功レスポンスを返すか、エラーを返す
-  return new NextResponse(null, { status: 501 });
+  const { id } = params;
+
+  let categories = await readCategories();
+  const initialLength = categories.length;
+  categories = categories.filter(cat => cat.id !== id);
+
+  if (categories.length === initialLength) {
+    return NextResponse.json({ message: 'Category not found' }, { status: 404 });
+  }
+
+  await writeCategories(categories);
+
+  // 削除されたカテゴリに紐づくタスクのcategoryIdをnullにする
+  const tasks = await readTasks();
+  const updatedTasks = tasks.map(task =>
+    task.categoryId === id ? { ...task, categoryId: undefined } : task
+  );
+  await writeTasks(updatedTasks);
+
+  return new NextResponse(null, { status: 204 });
 }

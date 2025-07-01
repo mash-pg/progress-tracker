@@ -49,11 +49,11 @@ const Pagination: React.FC<PaginationProps> = ({
   const pageNumbers = getPageNumbers();
 
   return (
-    <div className="flex justify-center mt-6 space-x-2">
+    <div className="flex justify-center mt-3 space-x-1 text-xs"> {/* ここを修正 */}
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 0}
-        className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+        className="px-2 py-1 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
       >
         前へ
       </button>
@@ -62,19 +62,19 @@ const Pagination: React.FC<PaginationProps> = ({
           {typeof page === 'number' ? (
             <button
               onClick={() => onPageChange(page)}
-              className={`px-4 py-2 rounded-md ${currentPage === page ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500'}`}
+              className={`px-2 py-1 rounded-md ${currentPage === page ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500'}`}
             >
               {page + 1}
             </button>
           ) : (
-            <span className="px-4 py-2 text-gray-700 dark:text-gray-300">{page}</span>
+            <span className="px-2 py-1 text-gray-700 dark:text-gray-300">{page}</span>
           )}
         </React.Fragment>
       ))}
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages - 1}
-        className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+        className="px-2 py-1 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
       >
         次へ
       </button>

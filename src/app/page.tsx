@@ -200,14 +200,16 @@ export default function Home() {
             ) : (
               <p className="text-center text-gray-500 text-lg col-span-full dark:text-gray-400">この月にはタスクがありません。</p>
             )}
+          </div>
+        )}
 
-            {totalPages > 1 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
-            )}
+        {totalPages > 1 && (
+          <div className="col-span-full">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </div>
         )}
 
