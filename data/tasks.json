@@ -3294,5 +3294,13 @@
     "createdAt": "2025-08-20T10:35:00.000Z",
     "dueDate": "2025-08-20",
     "categoryId": "cat-general"
+  },
+  {
+    "id": "10dfa681-a403-4dbd-8823-3f07b6b18325",
+    "name": "ｆがｓｄｆｇ",
+    "status": "todo",
+    "createdAt": "2025-07-01T19:58:15.219Z",
+    "dueDate": "2025-07-01",
+    "categoryId": "cat-general"
   }
 ]
