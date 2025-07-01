@@ -14,7 +14,7 @@ async function readCategories(): Promise<Category[]> {
   try {
     const data = await fs.readFile(categoriesFilePath, 'utf-8');
     return JSON.parse(data);
-  } catch (error) {
+  } catch (error: any) { // ここを修正
     if (error.code === 'ENOENT') {
       await fs.writeFile(categoriesFilePath, JSON.stringify([]));
       return [];
