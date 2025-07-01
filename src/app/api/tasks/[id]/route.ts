@@ -17,8 +17,8 @@ async function readTasks(): Promise<Task[]> {
   try {
     const data = await fs.readFile(tasksFilePath, 'utf-8');
     return JSON.parse(data);
-  } catch (error) {
-    if (error.code === 'ENOENT') {
+  } catch (error: unknown) { // unknown型で捕捉
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') { // 型ガードを追加
       await fs.writeFile(tasksFilePath, JSON.stringify([]));
       return [];
     }
@@ -32,7 +32,7 @@ async function writeTasks(tasks: Task[]): Promise<void> {
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
-  const updatedFields = await request.json(); // 更新するフィールドのみを受け取る
+  const updatedTaskData = await request.json();
 
   const tasks = await readTasks();
   const taskIndex = tasks.findIndex(task => task.id === id);
@@ -42,7 +42,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 
   // 既存のタスクデータと更新フィールドをマージ
-  tasks[taskIndex] = { ...tasks[taskIndex], ...updatedFields };
+  tasks[taskIndex] = { ...tasks[taskIndex], ...updatedTaskData };
   await writeTasks(tasks);
 
   return NextResponse.json(tasks[taskIndex]);

@@ -18,8 +18,8 @@ async function readTasks(): Promise<Task[]> {
   try {
     const data = await fs.readFile(tasksFilePath, 'utf-8');
     return JSON.parse(data);
-  } catch (error: any) { // ここを修正
-    if (error.code === 'ENOENT') {
+  } catch (error: unknown) { // unknown型で捕捉
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') { // 型ガードを追加
       await fs.writeFile(tasksFilePath, JSON.stringify([]));
       return [];
     }
