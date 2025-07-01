@@ -166,7 +166,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 dark:bg-gray-900">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl bg-white rounded-xl shadow-lg p-6 sm:p-8 lg:p-10 dark:bg-gray-800">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-full sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-5xl bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8 dark:bg-gray-800">
         <h1 className="text-center text-4xl font-extrabold text-gray-800 mb-8 dark:text-gray-100">進捗管理アプリ</h1>
 
         <DateNavigation selectedMonth={selectedMonth} onMonthChange={handleMonthChange} />

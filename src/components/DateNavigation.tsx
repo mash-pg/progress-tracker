@@ -27,12 +27,12 @@ export default function DateNavigation({ selectedMonth, onMonthChange }: DateNav
   };
 
   return (
-    <div className="date-navigation flex justify-between items-center mb-8 p-4 bg-blue-600 text-white rounded-lg shadow-md">
-      <button onClick={handlePrevMonth} className="px-5 py-2 bg-blue-700 hover:bg-blue-800 rounded-full transition duration-300 ease-in-out text-lg font-semibold">&lt;&lt; 前月</button>
-      <span className="current-date text-2xl font-bold cursor-pointer hover:text-blue-200 transition duration-300 ease-in-out" onClick={() => alert('カレンダーピッカーを表示')}>
+    <div className="date-navigation flex justify-between items-center mb-8 p-3 sm:p-4 bg-blue-600 text-white rounded-lg shadow-md">
+      <button onClick={handlePrevMonth} className="px-3 py-1 sm:px-5 sm:py-2 bg-blue-700 hover:bg-blue-800 rounded-full transition duration-300 ease-in-out text-base sm:text-lg font-semibold">&lt;&lt; 前月</button>
+      <span className="current-date text-xl sm:text-2xl font-bold cursor-pointer hover:text-blue-200 transition duration-300 ease-in-out" onClick={() => alert('カレンダーピッカーを表示')}>
         {selectedMonth}
       </span>
-      <button onClick={handleNextMonth} className="px-5 py-2 bg-blue-700 hover:bg-blue-800 rounded-full transition duration-300 ease-in-out text-lg font-semibold">翌月 &gt;&gt;</button>
+      <button onClick={handleNextMonth} className="px-3 py-1 sm:px-5 sm:py-2 bg-blue-700 hover:bg-blue-800 rounded-full transition duration-300 ease-in-out text-base sm:text-lg font-semibold">翌月 &gt;&gt;</button>
     </div>
   );
 }
