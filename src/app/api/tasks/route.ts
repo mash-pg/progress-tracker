@@ -18,7 +18,7 @@ async function readTasks(): Promise<Task[]> {
   try {
     const data = await fs.readFile(tasksFilePath, 'utf-8');
     return JSON.parse(data);
-  } catch (error) {
+  } catch (error: any) { // ここを修正
     if (error.code === 'ENOENT') {
       await fs.writeFile(tasksFilePath, JSON.stringify([]));
       return [];
