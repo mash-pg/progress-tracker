@@ -171,7 +171,9 @@ export default function Home() {
 
         <DateNavigation selectedMonth={selectedMonth} onMonthChange={handleMonthChange} />
 
-        <AddTaskButton onAddTask={handleAddTask} />
+        <div className="flex justify-center mb-4">
+          <AddTaskButton onAddTask={handleAddTask} />
+        </div>
 
         {loading && <p className="text-center text-blue-500 text-lg dark:text-blue-300">タスクを読み込み中...</p>}
         {error && <p className="text-center text-red-500 text-lg dark:text-red-300">エラー: {error}</p>}
