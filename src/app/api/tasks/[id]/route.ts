@@ -70,15 +70,23 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
 
-  const { error } = await supabase
-    .from('tasks')
-    .delete()
-    .eq('id', id);
+  console.log('DELETE /api/tasks/[id] - ID:', id);
 
-  if (error) {
-    console.error('Error deleting task:', error);
-    return NextResponse.json({ message: 'Error deleting task', error: error.message }, { status: 500 });
+  try {
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting task from Supabase:', error);
+      return NextResponse.json({ message: 'Error deleting task', error: error.message }, { status: 500 });
+    }
+
+    console.log('Task deleted successfully from Supabase for ID:', id);
+    return new NextResponse(null, { status: 204 });
+  } catch (err: any) {
+    console.error('Server error during DELETE request:', err);
+    return NextResponse.json({ message: 'Internal Server Error', error: err.message }, { status: 500 });
   }
-
-  return new NextResponse(null, { status: 204 });
 }
