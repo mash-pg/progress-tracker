@@ -39,8 +39,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { name, dueDate, categoryId, description } = await request.json();
-  const completed = request.json().completed ?? false; // completedが提供されない場合はfalseをデフォルトとする
+  const body = await request.json();
+  const { name, dueDate, categoryId, description } = body;
+  const completed = body.completed ?? false; // completedが提供されない場合はfalseをデフォルトとする
 
   if (!name || !dueDate) {
     return NextResponse.json({ message: 'Name and dueDate are required' }, { status: 400 });

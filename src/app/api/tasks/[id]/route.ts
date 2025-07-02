@@ -26,17 +26,11 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   const body = await request.json();
   const { name, dueDate, categoryId, description, completed } = body;
 
-  console.log('PUT /api/tasks/[id] - ID:', id);
-  console.log('PUT /api/tasks/[id] - Request Body:', body);
-
   const { data: updatedTask, error } = await supabase
     .from('tasks')
     .update({ name, "dueDate": dueDate, "categoryId": categoryId, description, completed })
     .eq('id', id)
     .select();
-
-  console.log('PUT /api/tasks/[id] - Supabase Data:', updatedTask);
-  console.log('PUT /api/tasks/[id] - Supabase Error:', error);
 
   if (error) {
     console.error('Error updating task:', error);
