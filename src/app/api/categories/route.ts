@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function GET() {
   const { data: categories, error } = await supabase
     .from('categories')
-    .select('*');
+    .select('id, name');
 
   if (error) {
     console.error('Error fetching categories:', error);
@@ -15,15 +16,18 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const { name, color } = await request.json();
+  const body = await request.json();
+  const { name } = body;
 
   if (!name) {
     return NextResponse.json({ message: 'Category name is required' }, { status: 400 });
   }
 
+  const newId = uuidv4();
+
   const { data: newCategory, error } = await supabase
     .from('categories')
-    .insert([{ name, color }])
+    .insert([{ id: newId, name }])
     .select();
 
   if (error) {

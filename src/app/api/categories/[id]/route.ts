@@ -1,33 +1,18 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
-
-  const { data: category, error } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error) {
-    if (error.code === 'PGRST116') { // No rows found
-      return NextResponse.json({ message: 'Category not found' }, { status: 404 });
-    }
-    console.error('Error fetching category:', error);
-    return NextResponse.json({ message: 'Error fetching category', error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json(category);
-}
-
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
-  const { name, color } = await request.json();
+  const body = await request.json();
+  const { name } = body;
+
+  if (!name) {
+    return NextResponse.json({ message: 'Category name is required' }, { status: 400 });
+  }
 
   const { data: updatedCategory, error } = await supabase
     .from('categories')
-    .update({ name, color })
+    .update({ name })
     .eq('id', id)
     .select();
 
@@ -46,6 +31,18 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
 
+  // まず、このカテゴリに紐づくタスクの categoryId を null に更新
+  const { error: updateError } = await supabase
+    .from('tasks')
+    .update({ categoryId: null })
+    .eq('categoryId', id);
+
+  if (updateError) {
+    console.error('Error updating tasks categoryId before deleting category:', updateError);
+    return NextResponse.json({ message: 'Error updating related tasks', error: updateError.message }, { status: 500 });
+  }
+
+  // その後、カテゴリを削除
   const { error } = await supabase
     .from('categories')
     .delete()
