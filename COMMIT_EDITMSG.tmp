@@ -1,0 +1,5 @@
+fix: Add logging and error handling to DELETE /api/tasks/[id]
+
+This commit enhances the DELETE endpoint for tasks by adding detailed logging
+and comprehensive error handling. This will aid in debugging the 500 Internal
+Server Error previously observed during DELETE operations.

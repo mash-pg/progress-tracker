@@ -87,20 +87,20 @@ export default function DateSection({
             {paginatedTasks.map(task => (
               <TaskItem key={task.id} task={task} onEditTask={onEditTask} onTaskChange={onTaskChange} onStatusUpdate={onStatusUpdate} categories={categories} />
             ))}
-            {totalTaskPages > 1 && (
-              <div className="flex justify-center mt-4 space-x-1 text-xs">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalTaskPages}
-                  onPageChange={setCurrentPage}
-                />
-              </div>
-            )}
           </div>
         ) : (
           <p className="text-gray-500 text-center py-3 text-sm dark:text-gray-400">この日付にはタスクがありません。</p>
         )}
       </div>
+      {totalTaskPages > 1 && isExpanded && ( /* isExpandedがtrueの場合のみ表示 */
+        <div className="flex justify-center mt-4 space-x-1 text-xs">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalTaskPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      )}
     </div>
   );
 }
