@@ -107,7 +107,9 @@ export default function Home() {
   };
 
   const handleFormSubmit = async () => {
+    console.log('handleFormSubmit: Before fetching tasks, current task count:', tasks.length);
     await fetchTasks(selectedMonth!); // データ更新後に再取得
+    console.log('handleFormSubmit: After fetching tasks, new task count:', tasks.length);
     handleFormClose();
   };
 

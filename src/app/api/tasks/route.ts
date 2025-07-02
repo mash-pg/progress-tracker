@@ -35,13 +35,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: 'Error fetching tasks', error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json(tasks);
+  // completed (boolean) を status (string) に変換
+  const formattedTasks = tasks.map(task => ({
+    ...task,
+    status: task.completed ? 'completed' : 'todo' // Supabaseのcompletedをstatusに変換
+  }));
+
+  return NextResponse.json(formattedTasks);
 }
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { name, dueDate, categoryId, description } = body;
-  const completed = body.completed ?? false; // completedが提供されない場合はfalseをデフォルトとする
+  const { name, dueDate, categoryId, description, status } = body;
+  const completed = status === 'completed'; // statusをcompleted (boolean) に変換
 
   if (!name || !dueDate) {
     return NextResponse.json({ message: 'Name and dueDate are required' }, { status: 400 });

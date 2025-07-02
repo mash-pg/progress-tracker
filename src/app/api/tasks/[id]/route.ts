@@ -24,11 +24,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
   const body = await request.json();
-  const { name, dueDate, categoryId, description, completed } = body;
+  const { name, dueDate, categoryId, description, status } = body;
+
+  let completedForDb = false;
+  if (status === 'completed') {
+    completedForDb = true;
+  }
 
   const { data: updatedTask, error } = await supabase
     .from('tasks')
-    .update({ name, "dueDate": dueDate, "categoryId": categoryId, description, completed })
+    .update({ name, "dueDate": dueDate, "categoryId": categoryId, description, completed: completedForDb })
     .eq('id', id)
     .select();
 

@@ -57,6 +57,9 @@ export default function TaskForm({ task, onClose, onSubmit, categories }: TaskFo
     const method = task ? 'PUT' : 'POST';
     const url = task ? `/api/tasks/${task.id}` : '/api/tasks';
 
+    console.log('TaskForm: Submitting with method:', method, 'URL:', url, 'Body:', { name, dueDate, status, categoryId });
+    console.log('Final method to be used:', method);
+
     try {
       const response = await fetch(url, {
         method,
@@ -65,6 +68,8 @@ export default function TaskForm({ task, onClose, onSubmit, categories }: TaskFo
         },
         body: JSON.stringify({ name, dueDate, status, categoryId }),
       });
+
+      console.log('TaskForm: Response OK:', response.ok, 'Status:', response.status);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

@@ -59,10 +59,13 @@ export default function TaskItem({ task, onEditTask, onTaskChange, onStatusUpdat
 
   const handleDelete = async () => {
     if (confirm(`タスク「${task.name}」を削除しますか？`)) {
+      console.log('TaskItem: Attempting to delete task with ID:', task.id);
       try {
         const response = await fetch(`/api/tasks/${task.id}`, {
           method: 'DELETE',
         });
+
+        console.log('TaskItem: Delete response OK:', response.ok, 'Status:', response.status);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -111,7 +114,7 @@ export default function TaskItem({ task, onEditTask, onTaskChange, onStatusUpdat
 
   return (
     <div className="task-item bg-white border border-gray-200 rounded-lg p-2 flex flex-col shadow-sm hover:shadow-md transition duration-300 ease-in-out dark:bg-gray-800 dark:border-gray-700 min-h-[90px]"> {/* min-hを調整 */}
-      <div className="flex-grow cursor-pointer" onClick={() => onEditTask(task)}>
+      <div className="flex-grow cursor-pointer" onClick={(e) => { e.stopPropagation(); onEditTask(task); }}>
         <h3 className="text-sm font-semibold text-gray-800 mb-0.5 dark:text-gray-100 truncate">{task.name}</h3>
         <p className="text-xs text-gray-600 dark:text-gray-300">カテゴリ: {categoryName}</p>
         <p className="text-xs text-gray-600 dark:text-gray-300">作成日時: {new Date(task.createdAt).toLocaleString()}</p>
@@ -162,7 +165,7 @@ export default function TaskItem({ task, onEditTask, onTaskChange, onStatusUpdat
         </div>
 
         <button
-          onClick={handleDelete}
+          onClick={(e) => { e.stopPropagation(); handleDelete(); }}
           className="px-2 py-0.5 bg-red-500 text-white rounded-md hover:bg-red-600 text-xs font-medium transition duration-300 ease-in-out"
         >
           削除

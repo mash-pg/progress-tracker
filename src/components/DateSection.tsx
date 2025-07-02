@@ -60,9 +60,18 @@ export default function DateSection({
 
   // ページングされたタスク
   const paginatedTasks = useMemo(() => {
+    // タスクをcreatedAtの降順、次にnameの昇順でソート
+    const sortedTasks = [...tasks].sort((a, b) => {
+      const dateComparison = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (dateComparison !== 0) {
+        return dateComparison;
+      }
+      return a.name.localeCompare(b.name);
+    });
+
     const startIndex = currentPage * TASKS_PER_PAGE;
     const endIndex = startIndex + TASKS_PER_PAGE;
-    return tasks.slice(startIndex, endIndex);
+    return sortedTasks.slice(startIndex, endIndex);
   }, [tasks, currentPage]);
 
   const totalTaskPages = Math.ceil(tasks.length / TASKS_PER_PAGE);
