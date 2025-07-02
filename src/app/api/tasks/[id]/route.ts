@@ -1,65 +1,84 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+import { supabase } from '@/lib/supabase';
 
-const tasksFilePath = path.join(process.cwd(), 'data', 'tasks.json');
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+  const { id } = params;
 
-interface Task {
-  id: string;
-  name: string;
-  status: 'todo' | 'in-progress' | 'completed';
-  createdAt: string;
-  dueDate: string;
-  categoryId?: string;
-}
+  const { data: task, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('id', id)
+    .single();
 
-async function readTasks(): Promise<Task[]> {
-  try {
-    const data = await fs.readFile(tasksFilePath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error: unknown) { // unknown型で捕捉
-    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') { // 型ガードを追加
-      await fs.writeFile(tasksFilePath, JSON.stringify([]));
-      return [];
+  if (error) {
+    if (error.code === 'PGRST116') { // No rows found
+      return NextResponse.json({ message: 'Task not found' }, { status: 404 });
     }
-    throw error;
+    console.error('Error fetching task:', error);
+    return NextResponse.json({ message: 'Error fetching task', error: error.message }, { status: 500 });
   }
-}
 
-async function writeTasks(tasks: Task[]): Promise<void> {
-  await fs.writeFile(tasksFilePath, JSON.stringify(tasks, null, 2));
+  return NextResponse.json(task);
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
-  const updatedTaskData = await request.json();
+  const body = await request.json();
+  const { name, dueDate, categoryId, description, completed } = body;
 
-  const tasks = await readTasks();
-  const taskIndex = tasks.findIndex(task => task.id === id);
+  console.log('PUT /api/tasks/[id] - ID:', id);
+  console.log('PUT /api/tasks/[id] - Request Body:', body);
 
-  if (taskIndex === -1) {
-    return NextResponse.json({ message: 'Task not found' }, { status: 404 });
+  const { data: updatedTask, error } = await supabase
+    .from('tasks')
+    .update({ name, "dueDate": dueDate, "categoryId": categoryId, description, completed })
+    .eq('id', id)
+    .select();
+
+  console.log('PUT /api/tasks/[id] - Supabase Data:', updatedTask);
+  console.log('PUT /api/tasks/[id] - Supabase Error:', error);
+
+  if (error) {
+    console.error('Error updating task:', error);
+    return NextResponse.json({ message: 'Error updating task', error: error.message }, { status: 500 });
   }
 
-  // 既存のタスクデータと更新フィールドをマージ
-  tasks[taskIndex] = { ...tasks[taskIndex], ...updatedTaskData };
-  await writeTasks(tasks);
+  if (!updatedTask || updatedTask.length === 0) {
+    // If updatedTask is empty, it means no rows were affected.
+    // This could be because the task doesn't exist, or the values are already the same.
+    // In this case, we should return the existing task, not a 404.
+    const { data: existingTask, error: fetchError } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-  return NextResponse.json(tasks[taskIndex]);
+    if (fetchError) {
+      // If fetching also fails, then the task truly doesn't exist or there's another issue.
+      console.error('Error fetching existing task after failed update:', fetchError);
+      return NextResponse.json({ message: 'Task not found or error fetching existing task', error: fetchError.message }, { status: 404 });
+    }
+
+    // Task exists but no change was made (idempotent update). Return the existing task.
+    console.warn('PUT /api/tasks/[id] - Task found but no changes applied (values already same) for ID:', id);
+    return NextResponse.json(existingTask, { status: 200 });
+  }
+
+  return NextResponse.json(updatedTask[0]);
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
 
-  let tasks = await readTasks();
-  const initialLength = tasks.length;
-  tasks = tasks.filter(task => task.id !== id);
+  const { error } = await supabase
+    .from('tasks')
+    .delete()
+    .eq('id', id);
 
-  if (tasks.length === initialLength) {
-    return NextResponse.json({ message: 'Task not found' }, { status: 404 });
+  if (error) {
+    console.error('Error deleting task:', error);
+    return NextResponse.json({ message: 'Error deleting task', error: error.message }, { status: 500 });
   }
-
-  await writeTasks(tasks);
 
   return new NextResponse(null, { status: 204 });
 }

@@ -1,52 +1,35 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-
-const categoriesFilePath = path.join(process.cwd(), 'data', 'categories.json');
-
-interface Category {
-  id: string;
-  name: string;
-}
-
-async function readCategories(): Promise<Category[]> {
-  try {
-    const data = await fs.readFile(categoriesFilePath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error: unknown) { // unknown型で捕捉
-    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') { // 型ガードを追加
-      await fs.writeFile(categoriesFilePath, JSON.stringify([]));
-      return [];
-    }
-    throw error;
-  }
-}
-
-async function writeCategories(categories: Category[]): Promise<void> {
-  await fs.writeFile(categoriesFilePath, JSON.stringify(categories, null, 2));
-}
+import { supabase } from '@/lib/supabase';
 
 export async function GET() {
-  const categories = await readCategories();
+  const { data: categories, error } = await supabase
+    .from('categories')
+    .select('*');
+
+  if (error) {
+    console.error('Error fetching categories:', error);
+    return NextResponse.json({ message: 'Error fetching categories', error: error.message }, { status: 500 });
+  }
+
   return NextResponse.json(categories);
 }
 
 export async function POST(request: Request) {
-  const { name } = await request.json();
+  const { name, color } = await request.json();
 
   if (!name) {
     return NextResponse.json({ message: 'Category name is required' }, { status: 400 });
   }
 
-  const newCategory: Category = {
-    id: uuidv4(),
-    name,
-  };
+  const { data: newCategory, error } = await supabase
+    .from('categories')
+    .insert([{ name, color }])
+    .select();
 
-  const categories = await readCategories();
-  categories.push(newCategory);
-  await writeCategories(categories);
+  if (error) {
+    console.error('Error creating category:', error);
+    return NextResponse.json({ message: 'Error creating category', error: error.message }, { status: 500 });
+  }
 
-  return NextResponse.json(newCategory, { status: 201 });
+  return NextResponse.json(newCategory[0], { status: 201 });
 }

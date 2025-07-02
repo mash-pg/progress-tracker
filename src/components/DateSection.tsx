@@ -81,7 +81,7 @@ export default function DateSection({
           進捗率: <span className="font-bold text-green-600">{progressRate}%</span> ({completedCount}/{totalCount})
         </span>
       </div>
-      <div className={`task-list-content transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[600px] opacity-100 pt-3 overflow-hidden' : 'max-h-0 opacity-0 overflow-hidden'}`}> {/* max-hを調整し、overflow-y-autoを削除 */}
+      <div className={`task-list-content transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[600px] opacity-100 pt-3 overflow-y-auto' : 'max-h-0 opacity-0 overflow-hidden'}`}> {/* max-hを調整し、overflow-y-autoを削除 */}
         {tasks.length > 0 ? (
           <div className="grid grid-cols-1 gap-2">
             {paginatedTasks.map(task => (

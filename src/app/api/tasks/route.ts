@@ -1,35 +1,6 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-
-const tasksFilePath = path.join(process.cwd(), 'data', 'tasks.json');
-
-interface Task {
-  id: string;
-  name: string;
-  status: 'todo' | 'in-progress' | 'completed';
-  createdAt: string;
-  dueDate: string;
-  categoryId?: string; // カテゴリIDを追加
-}
-
-async function readTasks(): Promise<Task[]> {
-  try {
-    const data = await fs.readFile(tasksFilePath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error: unknown) { // unknown型で捕捉
-    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') { // 型ガードを追加
-      await fs.writeFile(tasksFilePath, JSON.stringify([]));
-      return [];
-    }
-    throw error;
-  }
-}
-
-async function writeTasks(tasks: Task[]): Promise<void> {
-  await fs.writeFile(tasksFilePath, JSON.stringify(tasks, null, 2));
-}
+import { supabase } from '@/lib/supabase';
+import { v4 as uuidv4 } from 'uuid'; // uuidをインポート
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -37,43 +8,55 @@ export async function GET(request: Request) {
   const categoryId = searchParams.get('categoryId');
   const keyword = searchParams.get('keyword');
 
-  let tasks = await readTasks();
+  let query = supabase.from('tasks').select('*');
 
   if (month) {
-    tasks = tasks.filter(task => task.dueDate.startsWith(month));
+    const [year, mon] = month.split('-');
+    const startDate = `${year}-${mon}-01`;
+    const nextMonth = parseInt(mon) === 12 ? 1 : parseInt(mon) + 1;
+    const nextYear = parseInt(mon) === 12 ? parseInt(year) + 1 : parseInt(year);
+    const endDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+
+    query = query.gte('dueDate', startDate).lt('dueDate', endDate);
   }
 
   if (categoryId) {
-    tasks = tasks.filter(task => task.categoryId === categoryId);
+    query = query.eq('categoryId', categoryId);
   }
 
   if (keyword) {
-    const lowercasedKeyword = keyword.toLowerCase();
-    tasks = tasks.filter(task => task.name.toLowerCase().includes(lowercasedKeyword));
+    query = query.ilike('name', `%${keyword}%`);
+  }
+
+  const { data: tasks, error } = await query;
+
+  if (error) {
+    console.error('Error fetching tasks:', error);
+    return NextResponse.json({ message: 'Error fetching tasks', error: error.message }, { status: 500 });
   }
 
   return NextResponse.json(tasks);
 }
 
 export async function POST(request: Request) {
-  const { name, dueDate, categoryId } = await request.json();
+  const { name, dueDate, categoryId, description } = await request.json();
+  const completed = request.json().completed ?? false; // completedが提供されない場合はfalseをデフォルトとする
 
   if (!name || !dueDate) {
     return NextResponse.json({ message: 'Name and dueDate are required' }, { status: 400 });
   }
 
-  const newTask: Task = {
-    id: uuidv4(),
-    name,
-    status: 'todo',
-    createdAt: new Date().toISOString(),
-    dueDate,
-    categoryId,
-  };
+  const newId = uuidv4(); // 新しいIDを生成
 
-  const tasks = await readTasks();
-  tasks.push(newTask);
-  await writeTasks(tasks);
+  const { data: newTask, error } = await supabase
+    .from('tasks')
+    .insert([{ id: newId, name, "createdAt": new Date().toISOString(), "dueDate": dueDate, "categoryId": categoryId, description, completed }])
+    .select();
 
-  return NextResponse.json(newTask, { status: 201 });
+  if (error) {
+    console.error('Error creating task:', error);
+    return NextResponse.json({ message: 'Error creating task', error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(newTask[0], { status: 201 });
 }

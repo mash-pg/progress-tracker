@@ -1,94 +1,60 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+import { supabase } from '@/lib/supabase';
 
-const categoriesFilePath = path.join(process.cwd(), 'data', 'categories.json');
-const tasksFilePath = path.join(process.cwd(), 'data', 'tasks.json');
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+  const { id } = params;
 
-interface Category {
-  id: string;
-  name: string;
-}
+  const { data: category, error } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('id', id)
+    .single();
 
-interface Task {
-  id: string;
-  name: string;
-  status: 'todo' | 'in-progress' | 'completed';
-  createdAt: string;
-  dueDate: string;
-  categoryId?: string;
-}
-
-async function readCategories(): Promise<Category[]> {
-  try {
-    const data = await fs.readFile(categoriesFilePath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error: unknown) { // unknown型で捕捉
-    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') { // 型ガードを追加
-      await fs.writeFile(categoriesFilePath, JSON.stringify([]));
-      return [];
+  if (error) {
+    if (error.code === 'PGRST116') { // No rows found
+      return NextResponse.json({ message: 'Category not found' }, { status: 404 });
     }
-    throw error;
+    console.error('Error fetching category:', error);
+    return NextResponse.json({ message: 'Error fetching category', error: error.message }, { status: 500 });
   }
-}
 
-async function writeCategories(categories: Category[]): Promise<void> {
-  await fs.writeFile(categoriesFilePath, JSON.stringify(categories, null, 2));
-}
-
-async function readTasks(): Promise<Task[]> {
-  try {
-    const data = await fs.readFile(tasksFilePath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error: unknown) { // unknown型で捕捉
-    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') { // 型ガードを追加
-      await fs.writeFile(tasksFilePath, JSON.stringify([]));
-      return [];
-    }
-    throw error;
-  }
-}
-
-async function writeTasks(tasks: Task[]): Promise<void> {
-  await fs.writeFile(tasksFilePath, JSON.stringify(tasks, null, 2));
+  return NextResponse.json(category);
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
-  const updatedCategoryData = await request.json();
+  const { name, color } = await request.json();
 
-  const categories = await readCategories();
-  const categoryIndex = categories.findIndex(cat => cat.id === id);
+  const { data: updatedCategory, error } = await supabase
+    .from('categories')
+    .update({ name, color })
+    .eq('id', id)
+    .select();
 
-  if (categoryIndex === -1) {
+  if (error) {
+    console.error('Error updating category:', error);
+    return NextResponse.json({ message: 'Error updating category', error: error.message }, { status: 500 });
+  }
+
+  if (!updatedCategory || updatedCategory.length === 0) {
     return NextResponse.json({ message: 'Category not found' }, { status: 404 });
   }
 
-  categories[categoryIndex] = { ...categories[categoryIndex], ...updatedCategoryData };
-  await writeCategories(categories);
-
-  return NextResponse.json(categories[categoryIndex]);
+  return NextResponse.json(updatedCategory[0]);
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
 
-  let categories = await readCategories();
-  const initialLength = categories.length;
-  categories = categories.filter(cat => cat.id !== id);
+  const { error } = await supabase
+    .from('categories')
+    .delete()
+    .eq('id', id);
 
-  if (categories.length === initialLength) {
-    return NextResponse.json({ message: 'Category not found' }, { status: 404 });
+  if (error) {
+    console.error('Error deleting category:', error);
+    return NextResponse.json({ message: 'Error deleting category', error: error.message }, { status: 500 });
   }
-
-  await writeCategories(categories);
-
-  // 削除されたカテゴリに紐づくタスクのcategoryIdをnullにする
-  const tasks = await readTasks();
-  const updatedTasks = tasks.map(task =>
-    task.categoryId === id ? { ...task, categoryId: undefined } : task
-  );
-  await writeTasks(updatedTasks);
 
   return new NextResponse(null, { status: 204 });
 }
