@@ -293,7 +293,7 @@ export default function CategoriesPage() {
                         {paginatedCategoryTasks.map(task => (
                           <TaskItem
                             key={task.id}
-                            task={{ ...task, status: task.completed ? 'completed' : 'todo' }} // TaskItemに合わせる
+                            task={task} // TaskItemに合わせる
                             onEditTask={handleEditTask}
                             onTaskChange={handleTaskChange}
                             onStatusUpdate={handleStatusUpdate}
