@@ -9,12 +9,11 @@ import TaskForm from '@/components/TaskForm'; // TaskFormをインポート
 interface Task {
   id: string;
   name: string;
-  status: 'todo' | 'in-progress' | 'completed';
+  app_status: 'todo' | 'in-progress' | 'completed';
   createdAt: string;
   dueDate: string;
   categoryId?: string;
   description?: string;
-  completed: boolean;
 }
 
 interface Category {
@@ -34,6 +33,64 @@ export default function SearchPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const [isFormOpen, setIsFormOpen] = useState(false); // フォームの開閉状態
   const [editingTask, setEditingTask] = useState<Task | null>(null); // 編集中のタスク
+
+  const handleBulkDelete = async () => {
+    if (!confirm('検索結果のタスクを全て削除してもよろしいですか？この操作は元に戻せません。')) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedCategory) {
+        params.append('categoryId', selectedCategory);
+      }
+      if (keyword) {
+        params.append('keyword', keyword);
+      }
+      const response = await fetch(`/api/tasks?${params.toString()}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      handleSearch(); // 検索結果を再取得
+    } catch (e: any) {
+      console.error('Failed to bulk delete tasks:', e);
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBulkUpdateStatus = async (newAppStatus: Task['app_status']) => {
+    if (!confirm(`検索結果のタスクを全て「${newAppStatus}」にしてもよろしいですか？`)) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedCategory) {
+        params.append('categoryId', selectedCategory);
+      }
+      if (keyword) {
+        params.append('keyword', keyword);
+      }
+      const response = await fetch(`/api/tasks?${params.toString()}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ app_status: newAppStatus }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      handleSearch(); // 検索結果を再取得
+    } catch (e: any) {
+      console.error('Failed to bulk update tasks:', e);
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -113,11 +170,11 @@ export default function SearchPage() {
     handleSearch();
   };
 
-  const handleStatusUpdate = (taskId: string, newStatus: Task['status']) => {
+  const handleStatusUpdate = (taskId: string, newAppStatus: Task['app_status']) => {
     // 楽観的UI更新
     setSearchResults(prevResults =>
       prevResults.map(task =>
-        task.id === taskId ? { ...task, status: newStatus } : task
+        task.id === taskId ? { ...task, app_status: newAppStatus } : task
       )
     );
   };
@@ -162,12 +219,35 @@ export default function SearchPage() {
               onChange={(e) => setKeyword(e.target.value)}
             />
           </div>
-          <button
-            type="submit"
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline dark:bg-blue-600 dark:hover:bg-blue-700"
-          >
-            検索
-          </button>
+          <div className="flex space-x-2">
+            <button
+              type="submit"
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline dark:bg-blue-600 dark:hover:bg-blue-700"
+            >
+              検索
+            </button>
+            {searchResults.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <select
+                  onChange={(e) => handleBulkUpdateStatus(e.target.value as Task['app_status'])}
+                  className="shadow appearance-none border rounded py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 font-bold"
+                  defaultValue=""
+                >
+                  <option value="" disabled>一括ステータス更新</option>
+                  <option value="todo">未着手</option>
+                  <option value="in-progress">作業中</option>
+                  <option value="completed">完了</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={handleBulkDelete}
+                  className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline dark:bg-red-600 dark:hover:bg-red-700"
+                >
+                  検索結果を全て削除
+                </button>
+              </div>
+            )}
+          </div>
         </form>
 
         {loading && <p className="text-center text-blue-500 text-lg dark:text-blue-300">検索中...</p>}

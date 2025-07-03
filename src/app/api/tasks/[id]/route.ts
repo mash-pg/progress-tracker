@@ -6,7 +6,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const { data: task, error } = await supabase
     .from('tasks')
-    .select('*')
+    .select('*, app_status')
     .eq('id', id)
     .single();
 
@@ -24,16 +24,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
   const body = await request.json();
-  const { name, dueDate, categoryId, description, status } = body;
-
-  let completedForDb = false;
-  if (status === 'completed') {
-    completedForDb = true;
-  }
+  const { name, dueDate, categoryId, description, app_status } = body;
 
   const { data: updatedTask, error } = await supabase
     .from('tasks')
-    .update({ name, "dueDate": dueDate, "categoryId": categoryId, description, completed: completedForDb })
+    .update({ name, "dueDate": dueDate, "categoryId": categoryId, description, app_status: app_status })
     .eq('id', id)
     .select();
 
@@ -43,9 +38,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 
   if (!updatedTask || updatedTask.length === 0) {
-    // If updatedTask is empty, it means no rows were affected.
-    // This could be because the task doesn't exist, or the values are already the same.
-    // In this case, we should return the existing task, not a 404.
     const { data: existingTask, error: fetchError } = await supabase
       .from('tasks')
       .select('*')
@@ -53,17 +45,15 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       .single();
 
     if (fetchError) {
-      // If fetching also fails, then the task truly doesn't exist or there's another issue.
       console.error('Error fetching existing task after failed update:', fetchError);
       return NextResponse.json({ message: 'Task not found or error fetching existing task', error: fetchError.message }, { status: 404 });
     }
 
-    // Task exists but no change was made (idempotent update). Return the existing task.
     console.warn('PUT /api/tasks/[id] - Task found but no changes applied (values already same) for ID:', id);
-    return NextResponse.json({ ...existingTask, status: existingTask.completed ? 'completed' : 'todo' }, { status: 200 });
+    return NextResponse.json({ ...existingTask, app_status: existingTask.app_status }, { status: 200 });
   }
 
-  return NextResponse.json({ ...updatedTask[0], status: status });
+  return NextResponse.json({ ...updatedTask[0], app_status: updatedTask[0].app_status });
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {

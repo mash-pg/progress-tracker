@@ -35,19 +35,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: 'Error fetching tasks', error: error.message }, { status: 500 });
   }
 
-  // completed (boolean) を status (string) に変換
-  const formattedTasks = tasks.map(task => ({
-    ...task,
-    status: task.completed ? 'completed' : 'todo' // Supabaseのcompletedをstatusに変換
-  }));
-
-  return NextResponse.json(formattedTasks);
+  return NextResponse.json(tasks);
 }
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { name, dueDate, categoryId, description, status } = body;
-  const completed = status === 'completed'; // statusをcompleted (boolean) に変換
+  const { name, dueDate, categoryId, description, app_status } = body;
 
   if (!name || !dueDate) {
     return NextResponse.json({ message: 'Name and dueDate are required' }, { status: 400 });
@@ -57,7 +50,7 @@ export async function POST(request: Request) {
 
   const { data: newTask, error } = await supabase
     .from('tasks')
-    .insert([{ id: newId, name, "createdAt": new Date().toISOString(), "dueDate": dueDate, "categoryId": categoryId, description, completed }])
+    .insert([{ id: newId, name, "createdAt": new Date().toISOString(), "dueDate": dueDate, "categoryId": categoryId, description, app_status: app_status }])
     .select();
 
   if (error) {
@@ -67,7 +60,7 @@ export async function POST(request: Request) {
   
   const resultTask = {
     ...newTask[0],
-    status: completed ? 'completed' : 'todo'
+    app_status: app_status
   };
 
   return NextResponse.json(resultTask, { status: 201 });
@@ -77,11 +70,15 @@ export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
   const dueDate = searchParams.get('dueDate');
   const month = searchParams.get('month');
+  const categoryId = searchParams.get('categoryId');
+  const keyword = searchParams.get('keyword');
 
   let query = supabase.from('tasks').delete();
+  let hasWhereClause = false;
 
   if (dueDate) {
     query = query.eq('dueDate', dueDate);
+    hasWhereClause = true;
   } else if (month) {
     const [year, mon] = month.split('-');
     const startDate = `${year}-${mon}-01`;
@@ -89,6 +86,22 @@ export async function DELETE(request: Request) {
     const nextYear = parseInt(mon) === 12 ? parseInt(year) + 1 : parseInt(year);
     const endDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
     query = query.gte('dueDate', startDate).lt('dueDate', endDate);
+    hasWhereClause = true;
+  }
+
+  // categoryId と keyword は AND 条件として適用
+  if (categoryId) {
+    query = query.eq('categoryId', categoryId);
+    hasWhereClause = true;
+  }
+  if (keyword) {
+    query = query.ilike('name', `%${keyword}%`);
+    hasWhereClause = true;
+  }
+
+  // WHERE句が全くない場合はエラーを返す
+  if (!hasWhereClause) {
+    return NextResponse.json({ message: 'DELETE requires a WHERE clause or specific search parameters' }, { status: 400 });
   }
 
   const { error } = await query;
@@ -99,4 +112,43 @@ export async function DELETE(request: Request) {
   }
 
   return new NextResponse(null, { status: 204 });
+}
+
+export async function PUT(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const categoryId = searchParams.get('categoryId');
+  const keyword = searchParams.get('keyword');
+  const body = await request.json();
+  const { app_status } = body;
+
+  if (!app_status) {
+    return NextResponse.json({ message: 'app_status is required' }, { status: 400 });
+  }
+
+  let query = supabase.from('tasks').update({ app_status: app_status });
+  let hasWhereClause = false;
+
+  // categoryId と keyword は AND 条件として適用
+  if (categoryId) {
+    query = query.eq('categoryId', categoryId);
+    hasWhereClause = true;
+  }
+  if (keyword) {
+    query = query.ilike('name', `%${keyword}%`);
+    hasWhereClause = true;
+  }
+
+  // WHERE句が全くない場合はエラーを返す
+  if (!hasWhereClause) {
+    return NextResponse.json({ message: 'UPDATE requires a WHERE clause or specific search parameters' }, { status: 400 });
+  }
+
+  const { error } = await query;
+
+  if (error) {
+    console.error('Error bulk updating tasks:', error);
+    return NextResponse.json({ message: 'Error bulk updating tasks', error: error.message }, { status: 500 });
+  }
+
+  return new NextResponse(null, { status: 200 });
 }

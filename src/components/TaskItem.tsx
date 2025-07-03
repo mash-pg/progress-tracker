@@ -5,12 +5,11 @@ import { useState, useRef, useEffect } from 'react';
 interface Task {
   id: string;
   name: string;
-  status: 'todo' | 'in-progress' | 'completed';
+  app_status: 'todo' | 'in-progress' | 'completed';
   createdAt: string;
   dueDate: string;
   categoryId?: string;
   description?: string; // 追加
-  completed: boolean; // 追加
 }
 
 interface Category {
@@ -22,7 +21,7 @@ interface TaskItemProps {
   task: Task;
   onEditTask: (task: Task) => void;
   onTaskChange: () => void; // タスク変更後に親に通知するためのコールバック (削除、編集フォームからの保存)
-  onStatusUpdate: (taskId: string, newStatus: Task['status']) => void; // ステータス変更時の楽観的更新用
+  onStatusUpdate: (taskId: string, newAppStatus: Task['app_status']) => void; // ステータス変更時の楽観的更新用
   categories: Category[]; // カテゴリリストを追加
 }
 
@@ -30,14 +29,14 @@ export default function TaskItem({ task, onEditTask, onTaskChange, onStatusUpdat
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleStatusChange = async (newStatus: Task['status']) => {
+  const handleStatusChange = async (newAppStatus: Task['app_status']) => {
     setIsStatusDropdownOpen(false); // プルダウンを閉じる
 
-    if (newStatus === task.status) return; // 同じステータスなら何もしない
+    if (newAppStatus === task.app_status) return; // 同じステータスなら何もしない
 
     // 楽観的UI更新
-    const originalStatus = task.status;
-    onStatusUpdate(task.id, newStatus);
+    const originalStatus = task.app_status;
+    onStatusUpdate(task.id, newAppStatus);
 
     try {
       const response = await fetch(`/api/tasks/${task.id}`, {
@@ -45,7 +44,7 @@ export default function TaskItem({ task, onEditTask, onTaskChange, onStatusUpdat
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ app_status: newAppStatus }),
       });
 
       if (!response.ok) {
@@ -86,16 +85,16 @@ export default function TaskItem({ task, onEditTask, onTaskChange, onStatusUpdat
     'completed': '完了',
   };
 
-  const getStatusColorClass = (status: Task['status']) => {
-    switch (status) {
+  const getButtonColorClass = (app_status: Task['app_status']) => {
+    switch (app_status) {
       case 'completed':
-        return 'text-green-600';
+        return 'bg-green-500 hover:bg-green-600';
       case 'in-progress':
-        return 'text-yellow-600';
+        return 'bg-yellow-500 hover:bg-yellow-600';
       case 'todo':
-        return 'text-red-600';
+        return 'bg-red-500 hover:bg-red-600';
       default:
-        return 'text-gray-600';
+        return 'bg-gray-500 hover:bg-gray-600';
     }
   };
 
@@ -127,16 +126,12 @@ export default function TaskItem({ task, onEditTask, onTaskChange, onStatusUpdat
         <div className="relative inline-block text-left" ref={dropdownRef}>
           <button
             type="button"
-            className={`px-2 py-0.5 rounded-md text-xs font-medium transition duration-300 ease-in-out
-              ${task.status === 'completed' ? 'bg-green-500 text-white hover:bg-green-600' :
-                task.status === 'in-progress' ? 'bg-yellow-500 text-white hover:bg-yellow-600' :
-                'bg-red-500 text-white hover:bg-red-600'
-              }`}
+            className={`px-2 py-0.5 rounded-md text-xs font-medium transition duration-300 ease-in-out text-white ${getButtonColorClass(task.app_status)}`}
             onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
             aria-haspopup="true"
             aria-expanded={isStatusDropdownOpen}
           >
-            {statusMap[task.status]} ▼
+            {statusMap[task.app_status]} ▼
           </button>
 
           {isStatusDropdownOpen && (
@@ -151,11 +146,11 @@ export default function TaskItem({ task, onEditTask, onTaskChange, onStatusUpdat
                   <a
                     key={key}
                     href="#"
-                    className={`block px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 ${task.status === key ? 'bg-gray-100 font-semibold dark:bg-gray-600' : ''}`}
+                    className={`block px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 ${task.app_status === key ? 'bg-gray-100 font-semibold dark:bg-gray-600' : ''}`}
                     role="menuitem"
                     onClick={(e) => {
                       e.preventDefault();
-                      handleStatusChange(key as Task['status']);
+                      handleStatusChange(key as Task['app_status']);
                     }}
                   >
                     {value}

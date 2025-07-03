@@ -5,12 +5,11 @@ import { useState, useEffect } from 'react';
 interface Task {
   id: string;
   name: string;
-  status: 'todo' | 'in-progress' | 'completed';
+  app_status: 'todo' | 'in-progress' | 'completed';
   createdAt: string;
   dueDate: string;
   categoryId?: string;
   description?: string; // 追加: descriptionプロパティ
-  completed: boolean; // 必須にする
 }
 
 interface Category {
@@ -28,7 +27,7 @@ interface TaskFormProps {
 export default function TaskForm({ task, onClose, onSubmit, categories }: TaskFormProps) {
   const [name, setName] = useState(task ? task.name : '');
   const [dueDate, setDueDate] = useState(task ? task.dueDate : '');
-  const [status, setStatus] = useState<Task['status']>(task ? task.status : 'todo');
+  const [status, setStatus] = useState<Task['app_status']>(task ? task.app_status : 'todo');
   const [categoryId, setCategoryId] = useState<string | undefined>(task?.categoryId);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -68,7 +67,7 @@ export default function TaskForm({ task, onClose, onSubmit, categories }: TaskFo
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, dueDate, status, categoryId }),
+        body: JSON.stringify({ name, dueDate, app_status: status, categoryId }),
       });
 
       console.log('TaskForm: Response OK:', response.ok, 'Status:', response.status);
@@ -138,7 +137,7 @@ export default function TaskForm({ task, onClose, onSubmit, categories }: TaskFo
                 id="status"
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                 value={status}
-                onChange={(e) => setStatus(e.target.value as Task['status'])}
+                onChange={(e) => setStatus(e.target.value as Task['app_status'])}
                 disabled={isSubmitting}
               >
                 <option value="todo">未着手</option>

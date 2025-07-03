@@ -10,11 +10,10 @@ import Pagination from '@/components/Pagination'; // Paginationをインポー�
 interface Task {
   id: string;
   name: string;
-  status: 'todo' | 'in-progress' | 'completed';
+  app_status: 'todo' | 'in-progress' | 'completed';
   createdAt: string;
   dueDate: string;
   categoryId?: string;
-  completed: boolean; // 追加
 }
 
 interface Category {
@@ -98,7 +97,7 @@ export default function Home() {
   };
 
   const handleEditTask = (task: Task) => {
-    setEditingTask({ ...task, completed: task.status === 'completed' });
+    setEditingTask(task);
     setIsFormOpen(true);
   };
 
@@ -122,10 +121,10 @@ export default function Home() {
   };
 
   // ステータス変更時の楽観的UI更新
-  const handleStatusUpdate = (taskId: string, newStatus: Task['status']) => {
+  const handleStatusUpdate = (taskId: string, newAppStatus: Task['app_status']) => {
     setTasks(prevTasks =>
       prevTasks.map(task =>
-        task.id === taskId ? { ...task, status: newStatus } : task
+        task.id === taskId ? { ...task, app_status: newAppStatus } : task
       )
     );
   };
@@ -156,7 +155,7 @@ export default function Home() {
 
   // 進捗率を計算する関数
   const calculateProgress = (tasksForDate: Task[]) => {
-    const completedTasks = tasksForDate.filter(task => task.status === 'completed');
+    const completedTasks = tasksForDate.filter(task => task.app_status === 'completed');
     const totalTasks = tasksForDate.length;
     if (totalTasks === 0) {
       return { progressRate: 0, completedCount: 0, totalCount: 0 };

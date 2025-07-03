@@ -16,11 +16,10 @@ interface Task {
   id: string;
   name: string;
   dueDate: string;
-  completed: boolean; // 追加
   categoryId?: string; // TaskFormで必要
   description?: string; // TaskItemで必要
   createdAt: string; // TaskItemで必要
-  status: 'todo' | 'in-progress' | 'completed'; // TaskFormで必要
+  app_status: 'todo' | 'in-progress' | 'completed'; // TaskFormで必要
 }
 
 const TASKS_PER_PAGE_CATEGORY = 9; // カテゴリ内のタスク表示件数
@@ -47,19 +46,14 @@ export default function CategoriesPage() {
     try {
       const [categoriesRes, tasksRes] = await Promise.all([
         supabase.from('categories').select('id, name'),
-        supabase.from('tasks').select('id, name, dueDate, completed, categoryId, description, createdAt') // descriptionとcreatedAtを追加
+        supabase.from('tasks').select('id, name, dueDate, categoryId, description, createdAt, app_status') // app_statusを追加
       ]);
 
       if (categoriesRes.error) throw categoriesRes.error;
       if (tasksRes.error) throw tasksRes.error;
 
       setCategories(categoriesRes.data || []);
-      // completedをstatusに変換
-      const formattedTasks = (tasksRes.data || []).map(task => ({
-        ...task,
-        status: (task.completed ? 'completed' : 'todo') as 'todo' | 'in-progress' | 'completed'
-      }));
-      setTasks(formattedTasks);
+      setTasks(tasksRes.data || []);
 
     } catch (err: any) {
       console.error('Error fetching data:', err);
@@ -93,11 +87,10 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleStatusUpdate = async (taskId: string, newStatus: 'todo' | 'in-progress' | 'completed') => {
-    const completed = newStatus === 'completed';
+  const handleStatusUpdate = async (taskId: string, newAppStatus: Task['app_status']) => {
     const { error } = await supabase
       .from('tasks')
-      .update({ completed: completed })
+      .update({ app_status: newAppStatus })
       .eq('id', taskId);
 
     if (error) {
@@ -106,14 +99,14 @@ export default function CategoriesPage() {
     } else {
       setTasks(prevTasks =>
         prevTasks.map(task =>
-          task.id === taskId ? { ...task, completed: completed, status: newStatus } : task
+          task.id === taskId ? { ...task, app_status: newAppStatus } : task
         )
       );
     }
   };
 
   const handleEditTask = (task: Task) => {
-    setEditingTask({ ...task, status: task.completed ? 'completed' : 'todo' });
+    setEditingTask(task);
     setIsFormOpen(true);
   };
 

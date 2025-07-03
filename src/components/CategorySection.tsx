@@ -12,11 +12,10 @@ interface Category {
 interface Task {
   id: string;
   name: string;
-  status: 'todo' | 'in-progress' | 'completed';
+  app_status: 'todo' | 'in-progress' | 'completed';
   createdAt: string;
   dueDate: string;
   categoryId?: string;
-  completed: boolean;
 }
 
 interface CategorySectionProps {
@@ -27,7 +26,7 @@ interface CategorySectionProps {
   onDeleteCategory: (id: string) => void;
   onEditTask: (task: Task) => void;
   onTaskChange: () => void; // タスク変更後に親に通知するためのコールバック
-  onStatusUpdate: (taskId: string, newStatus: Task['status']) => void; // ステータス変更時の楽観的更新用
+  onStatusUpdate: (taskId: string, newAppStatus: Task['app_status']) => void; // ステータス変更時の楽観的更新用
 }
 
 const TASKS_PER_CATEGORY_PAGE = 6; // カテゴリごとのタスクページング数
