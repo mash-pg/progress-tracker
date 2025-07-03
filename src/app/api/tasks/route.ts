@@ -76,18 +76,25 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
   const dueDate = searchParams.get('dueDate');
+  const month = searchParams.get('month');
 
-  if (!dueDate) {
-    return NextResponse.json({ message: 'dueDate is required' }, { status: 400 });
+  let query = supabase.from('tasks').delete();
+
+  if (dueDate) {
+    query = query.eq('dueDate', dueDate);
+  } else if (month) {
+    const [year, mon] = month.split('-');
+    const startDate = `${year}-${mon}-01`;
+    const nextMonth = parseInt(mon) === 12 ? 1 : parseInt(mon) + 1;
+    const nextYear = parseInt(mon) === 12 ? parseInt(year) + 1 : parseInt(year);
+    const endDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+    query = query.gte('dueDate', startDate).lt('dueDate', endDate);
   }
 
-  const { error } = await supabase
-    .from('tasks')
-    .delete()
-    .eq('dueDate', dueDate);
+  const { error } = await query;
 
   if (error) {
-    console.error('Error deleting tasks by date:', error);
+    console.error('Error deleting tasks:', error);
     return NextResponse.json({ message: 'Error deleting tasks', error: error.message }, { status: 500 });
   }
 

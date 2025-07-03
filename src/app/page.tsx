@@ -186,6 +186,28 @@ export default function Home() {
     }
   };
 
+  const handleDeleteTasksByMonth = async () => {
+    if (!selectedMonth) return;
+    if (!confirm(`${selectedMonth} の全てのタスクを削除してもよろしいですか？この操作は元に戻せません。`)) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/tasks?month=${selectedMonth}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      fetchTasks(selectedMonth as string); // タスクを再取得してUIを更新
+    } catch (e: any) {
+      console.error('Failed to delete tasks by month:', e);
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // selectedMonthがnullの間は何も表示しないか、ローディング表示
   if (!isClient || selectedMonth === null) {
     return (
@@ -202,8 +224,14 @@ export default function Home() {
 
         <DateNavigation selectedMonth={selectedMonth} onMonthChange={handleMonthChange} />
 
-        <div className="flex justify-center mb-4">
+        <div className="flex justify-center mb-4 space-x-2">
           <AddTaskButton onAddTask={handleAddTask} />
+          <button
+            onClick={handleDeleteTasksByMonth}
+            className="inline-block py-3 sm:py-4 px-6 sm:px-8 bg-red-500 text-white rounded-full hover:bg-red-700 text-lg sm:text-xl font-bold shadow-lg transition duration-300 ease-in-out transform hover:scale-105"
+          >
+            この月のタスクを削除
+          </button>
         </div>
 
         {loading && <p className="text-center text-blue-500 text-lg dark:text-blue-300">タスクを読み込み中...</p>}
