@@ -165,6 +165,27 @@ export default function Home() {
     return { progressRate, completedCount: completedTasks.length, totalCount: totalTasks };
   };
 
+  const handleDeleteTasksByDate = async (date: string) => {
+    if (!confirm(`${date} のタスクを全て削除してもよろしいですか？`)) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/tasks?dueDate=${date}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      fetchTasks(selectedMonth as string); // タスクを再取得してUIを更新
+    } catch (e: any) {
+      console.error('Failed to delete tasks by date:', e);
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // selectedMonthがnullの間は何も表示しないか、ローディング表示
   if (!isClient || selectedMonth === null) {
     return (
@@ -205,6 +226,7 @@ export default function Home() {
                     onEditTask={handleEditTask}
                     onTaskChange={() => fetchTasks(selectedMonth as string)}
                     onStatusUpdate={handleStatusUpdate}
+                    onDeleteTasksByDate={handleDeleteTasksByDate}
                     categories={categories}
                   />
                 );

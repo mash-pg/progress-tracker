@@ -72,3 +72,24 @@ export async function POST(request: Request) {
 
   return NextResponse.json(resultTask, { status: 201 });
 }
+
+export async function DELETE(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const dueDate = searchParams.get('dueDate');
+
+  if (!dueDate) {
+    return NextResponse.json({ message: 'dueDate is required' }, { status: 400 });
+  }
+
+  const { error } = await supabase
+    .from('tasks')
+    .delete()
+    .eq('dueDate', dueDate);
+
+  if (error) {
+    console.error('Error deleting tasks by date:', error);
+    return NextResponse.json({ message: 'Error deleting tasks', error: error.message }, { status: 500 });
+  }
+
+  return new NextResponse(null, { status: 204 });
+}

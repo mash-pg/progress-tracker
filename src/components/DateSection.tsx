@@ -29,6 +29,7 @@ interface DateSectionProps {
   onTaskChange: () => void; // タスク変更後に親に通知するためのコールバック
   onStatusUpdate: (taskId: string, newStatus: Task['status']) => void; // ステータス変更時の楽観的更新用
   categories: Category[]; // カテゴリリストを追加
+  onDeleteTasksByDate: (date: string) => void; // 日付ごとのタスク削除用
 }
 
 const TASKS_PER_PAGE = 6; // 1ページあたりのタスク数
@@ -43,6 +44,7 @@ export default function DateSection({
   onTaskChange,
   onStatusUpdate,
   categories,
+  onDeleteTasksByDate,
 }: DateSectionProps) {
   const [isExpanded, setIsExpanded] = useState(() => {
     // ローカルストレージから展開状態を読み込む
@@ -85,7 +87,15 @@ export default function DateSection({
       >
         <div className="flex justify-between items-center w-full mb-0.5">
           <span className="text-lg font-bold text-blue-700 dark:text-blue-300">{date}</span>
-          <span className="text-gray-500 text-base ml-2 dark:text-gray-400">{isExpanded ? '▲' : '▼'}</span>
+          <div className="flex items-center">
+            <button
+              onClick={(e) => { e.stopPropagation(); onDeleteTasksByDate(date); }}
+              className="ml-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-1 px-2 rounded"
+            >
+              削除
+            </button>
+            <span className="text-gray-500 text-base ml-2 dark:text-gray-400">{isExpanded ? '▲' : '▼'}</span>
+          </div>
         </div>
         <span className="progress-rate text-gray-700 text-sm font-medium dark:text-gray-300">
           進捗率: <span className="font-bold text-green-600">{progressRate}%</span> ({completedCount}/{totalCount})
