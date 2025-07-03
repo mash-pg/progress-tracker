@@ -10,6 +10,7 @@ interface Task {
   dueDate: string;
   categoryId?: string;
   description?: string; // 追加: descriptionプロパティ
+  completed: boolean; // 必須にする
 }
 
 interface Category {
