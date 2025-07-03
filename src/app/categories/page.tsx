@@ -104,7 +104,11 @@ export default function CategoriesPage() {
       console.error('Error updating task status:', error);
       alert('タスクステータスの更新に失敗しました。');
     } else {
-      fetchData(); // データ再取得
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
+          task.id === taskId ? { ...task, completed: completed, status: newStatus } : task
+        )
+      );
     }
   };
 
