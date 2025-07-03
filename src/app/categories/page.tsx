@@ -2,27 +2,35 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
-import { v4 as uuidv4 } from 'uuid'; // uuidをインポート
-import TaskItem from '@/components/TaskItem'; // TaskItemをインポート
-import Pagination from '@/components/Pagination'; // Paginationをインポート
-import TaskForm from '@/components/TaskForm'; // TaskFormをインポート
+import { v4 as uuidv4 } from 'uuid';
+import TaskItem from '@/components/TaskItem';
+import Pagination from '@/components/Pagination';
+import TaskForm from '@/components/TaskForm';
+import dynamic from 'next/dynamic';
+
+const DragDropContext = dynamic(
+  () => import('react-beautiful-dnd').then(mod => mod.DragDropContext),
+  { ssr: false }
+);
+import { Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 
 interface Category {
   id: string;
   name: string;
+  position: number;
 }
 
 interface Task {
   id: string;
   name: string;
   dueDate: string;
-  categoryId?: string; // TaskFormで必要
-  description?: string; // TaskItemで必要
-  createdAt: string; // TaskItemで必要
-  app_status: 'todo' | 'in-progress' | 'completed'; // TaskFormで必要
+  categoryId?: string;
+  description?: string;
+  createdAt: string;
+  app_status: 'todo' | 'in-progress' | 'completed';
 }
 
-const TASKS_PER_PAGE_CATEGORY = 9; // カテゴリ内のタスク表示件数
+const TASKS_PER_PAGE_CATEGORY = 9;
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -32,9 +40,9 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openCategoryId, setOpenCategoryId] = useState<string | null>(null);
-  const [categoryTaskPages, setCategoryTaskPages] = useState<Record<string, number>>({}); // カテゴリごとのページ状態
-  const [isFormOpen, setIsFormOpen] = useState(false); // フォームの開閉状態
-  const [editingTask, setEditingTask] = useState<Task | null>(null); // 編集中のタスク
+  const [categoryTaskPages, setCategoryTaskPages] = useState<Record<string, number>>({});
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -45,8 +53,8 @@ export default function CategoriesPage() {
     setError(null);
     try {
       const [categoriesRes, tasksRes] = await Promise.all([
-        supabase.from('categories').select('id, name'),
-        supabase.from('tasks').select('id, name, dueDate, categoryId, description, createdAt, app_status') // app_statusを追加
+        supabase.from('categories').select('id, name, position').order('position'),
+        supabase.from('tasks').select('id, name, dueDate, categoryId, description, createdAt, app_status')
       ]);
 
       if (categoriesRes.error) throw categoriesRes.error;
@@ -71,10 +79,11 @@ export default function CategoriesPage() {
     }
 
     const newId = uuidv4();
+    const newPosition = categories.length;
 
     const { data, error } = await supabase
       .from('categories')
-      .insert([{ id: newId, name: newCategoryName.trim() }])
+      .insert([{ id: newId, name: newCategoryName.trim(), position: newPosition }])
       .select();
 
     if (error) {
@@ -83,7 +92,7 @@ export default function CategoriesPage() {
       alert('カテゴリの追加に失敗しました。');
     } else if (data) {
       setNewCategoryName('');
-      fetchData(); // データを再取得してUIを更新
+      fetchData();
     }
   };
 
@@ -111,7 +120,6 @@ export default function CategoriesPage() {
   };
 
   const handleTaskChange = () => {
-    // タスクが変更されたらデータを再取得
     fetchData();
   };
 
@@ -120,8 +128,7 @@ export default function CategoriesPage() {
     setEditingTask(null);
   };
 
-  const handleFormSubmit = async (savedTask: Task) => { // savedTaskを引数として受け取る
-    // tasksステートを直接更新
+  const handleFormSubmit = async (savedTask: Task) => {
     setTasks(prevTasks => {
       const existingTaskIndex = prevTasks.findIndex(t => t.id === savedTask.id);
       if (existingTaskIndex > -1) {
@@ -159,7 +166,7 @@ export default function CategoriesPage() {
       alert('カテゴリの更新に失敗しました。');
     } else if (data) {
       setEditingCategory(null);
-      fetchData(); // データを再取得してUIを更新
+      fetchData();
     }
   };
 
@@ -168,7 +175,6 @@ export default function CategoriesPage() {
       return;
     }
 
-    // まず、このカテゴリに紐づくタスクの categoryId を null に更新
     const { error: updateError } = await supabase
       .from('tasks')
       .update({ categoryId: null })
@@ -181,7 +187,6 @@ export default function CategoriesPage() {
       return;
     }
 
-    // その後、カテゴリを削除
     const { error } = await supabase
       .from('categories')
       .delete()
@@ -192,7 +197,32 @@ export default function CategoriesPage() {
       setError(error.message);
       alert('カテゴリの削除に失敗しました。');
     } else {
-      fetchData(); // データを再取得してUIを更新
+      fetchData();
+    }
+  };
+
+  const onDragEnd = async (result: DropResult) => {
+    const { source, destination } = result;
+    if (!destination) return;
+
+    const reorderedCategories = Array.from(categories);
+    const [movedCategory] = reorderedCategories.splice(source.index, 1);
+    reorderedCategories.splice(destination.index, 0, movedCategory);
+
+    setCategories(reorderedCategories);
+
+    const updates = reorderedCategories.map((category, index) => ({
+      id: category.id,
+      name: category.name,
+      position: index,
+    }));
+
+    const { error } = await supabase.from('categories').upsert(updates);
+
+    if (error) {
+      console.error('Error updating category positions:', error);
+    } else {
+      fetchData();
     }
   };
 
@@ -209,7 +239,6 @@ export default function CategoriesPage() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-full sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-5xl bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8 dark:bg-gray-800">
         <h1 className="text-center text-4xl font-extrabold text-gray-800 mb-8 dark:text-gray-100">カテゴリ管理</h1>
 
-        {/* カテゴリ追加フォーム */}
         <form onSubmit={editingCategory ? handleUpdateCategory : handleAddCategory} className="mb-8">
           <div className="flex items-center">
             <input
@@ -243,75 +272,74 @@ export default function CategoriesPage() {
           </div>
         </form>
 
-        {/* カテゴリリスト */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {categories.map(category => {
-            const categoryTasks = tasks.filter(task => task.categoryId === category.id);
-            const isOpen = openCategoryId === category.id;
-            const currentCategoryPage = categoryTaskPages[category.id] || 0;
-
-            const paginatedCategoryTasks = categoryTasks.slice(
-              currentCategoryPage * TASKS_PER_PAGE_CATEGORY,
-              (currentCategoryPage + 1) * TASKS_PER_PAGE_CATEGORY
-            );
-            const totalCategoryPages = Math.ceil(categoryTasks.length / TASKS_PER_PAGE_CATEGORY);
-
-            return (
-              <div key={category.id} className="bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-700 dark:border-gray-600">
-                <div 
-                  className="p-4 flex justify-between items-center cursor-pointer"
-                  onClick={() => setOpenCategoryId(isOpen ? null : category.id)}
-                >
-                  <span className="text-gray-800 font-medium dark:text-gray-100">{category.name} ({categoryTasks.length})</span>
-                  <div className="flex items-center">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setEditingCategory(category); }}
-                      className="bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold py-1 px-2 rounded mr-2"
-                    >
-                      編集
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteCategory(category.id); }}
-                      className="bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-1 px-2 rounded mr-2"
-                    >
-                      削除
-                    </button>
-                    <svg className={`w-5 h-5 transform transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                  </div>
-                </div>
-                {isOpen && (
-                  <div className="border-t border-gray-200 dark:border-gray-600 p-4">
-                    {paginatedCategoryTasks.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {paginatedCategoryTasks.map(task => (
-                          <TaskItem
-                            key={task.id}
-                            task={task} // TaskItemに合わせる
-                            onEditTask={handleEditTask}
-                            onTaskChange={handleTaskChange}
-                            onStatusUpdate={handleStatusUpdate}
-                            categories={categories} // カテゴリ情報を渡す
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">このカテゴリにはタスクがありません。</p>
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="categories">
+            {(provided) => (
+              <div {...provided.droppableProps} ref={provided.innerRef} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {categories.map((category, index) => (
+                  <Draggable key={category.id} draggableId={category.id} index={index}>
+                    {(provided) => (
+                      <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className="bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-700 dark:dark:border-gray-600"
+                        >
+                          <div
+                            className="p-4 flex justify-between items-center cursor-pointer"
+                            onClick={() => setOpenCategoryId(openCategoryId === category.id ? null : category.id)}
+                          >
+                            <div {...provided.dragHandleProps} className="flex items-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                              </svg>
+                              <span className="text-gray-800 font-medium dark:text-gray-100">{category.name} ({tasks.filter(task => task.categoryId === category.id).length})</span>
+                            </div>
+                            <div className="flex items-center">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setEditingCategory(category); }}
+                                className="bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold py-1 px-2 rounded mr-2"
+                              >
+                                編集
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteCategory(category.id); }}
+                                className="bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-1 px-2 rounded mr-2"
+                              >
+                                削除
+                              </button>
+                              <svg className={`w-5 h-5 transform transition-transform ${openCategoryId === category.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                          </div>
+                          {openCategoryId === category.id && (
+                            <div className="border-t border-gray-200 dark:border-gray-600 p-4">
+                              {tasks.filter(task => task.categoryId === category.id).length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                  {tasks.filter(task => task.categoryId === category.id).map(task => (
+                                    <TaskItem
+                                      key={task.id}
+                                      task={task}
+                                      onEditTask={handleEditTask}
+                                      onTaskChange={handleTaskChange}
+                                      onStatusUpdate={handleStatusUpdate}
+                                      categories={categories}
+                                    />
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-500 dark:text-gray-400">このカテゴリにはタスクがありません。</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
                     )}
-                    {totalCategoryPages > 1 && (
-                      <div className="mt-4">
-                        <Pagination
-                          currentPage={currentCategoryPage}
-                          totalPages={totalCategoryPages}
-                          onPageChange={(page) => handleCategoryPageChange(category.id, page)}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
               </div>
-            );
-          })}
-        </div>
+            )}
+          </Droppable>
+        </DragDropContext>
       </div>
 
       {isFormOpen && (
