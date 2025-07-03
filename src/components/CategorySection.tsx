@@ -16,6 +16,7 @@ interface Task {
   createdAt: string;
   dueDate: string;
   categoryId?: string;
+  completed: boolean;
 }
 
 interface CategorySectionProps {

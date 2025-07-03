@@ -60,10 +60,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     // Task exists but no change was made (idempotent update). Return the existing task.
     console.warn('PUT /api/tasks/[id] - Task found but no changes applied (values already same) for ID:', id);
-    return NextResponse.json(existingTask, { status: 200 });
+    return NextResponse.json({ ...existingTask, status: existingTask.completed ? 'completed' : 'todo' }, { status: 200 });
   }
 
-  return NextResponse.json(updatedTask[0]);
+  return NextResponse.json({ ...updatedTask[0], status: completedForDb ? 'completed' : 'todo' });
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {

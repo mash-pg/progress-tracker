@@ -14,6 +14,7 @@ interface Task {
   dueDate: string;
   categoryId?: string;
   description?: string;
+  completed: boolean;
 }
 
 interface Category {

@@ -98,7 +98,7 @@ export default function Home() {
   };
 
   const handleEditTask = (task: Task) => {
-    setEditingTask(task);
+    setEditingTask({ ...task, completed: task.status === 'completed' });
     setIsFormOpen(true);
   };
 
@@ -203,7 +203,7 @@ export default function Home() {
                     totalCount={totalCount}
                     tasks={tasksForDate}
                     onEditTask={handleEditTask}
-                    onTaskChange={handleFormSubmit}
+                    onTaskChange={() => fetchTasks(selectedMonth as string)}
                     onStatusUpdate={handleStatusUpdate}
                     categories={categories}
                   />

@@ -64,6 +64,11 @@ export async function POST(request: Request) {
     console.error('Error creating task:', error);
     return NextResponse.json({ message: 'Error creating task', error: error.message }, { status: 500 });
   }
+  
+  const resultTask = {
+    ...newTask[0],
+    status: completed ? 'completed' : 'todo'
+  };
 
-  return NextResponse.json(newTask[0], { status: 201 });
+  return NextResponse.json(resultTask, { status: 201 });
 }
