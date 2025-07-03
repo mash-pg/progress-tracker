@@ -1,38 +1,71 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
+import TaskItem from '@/components/TaskItem'; // TaskItemをインポート
+import Pagination from '@/components/Pagination'; // Paginationをインポート
+import TaskForm from '@/components/TaskForm'; // TaskFormをインポート
 
 interface Category {
   id: string;
   name: string;
 }
 
+interface Task {
+  id: string;
+  name: string;
+  dueDate: string;
+  completed: boolean; // 追加
+  categoryId?: string; // TaskFormで必要
+  description?: string; // TaskItemで必要
+  createdAt: string; // TaskItemで必要
+  status: 'todo' | 'in-progress' | 'completed'; // TaskFormで必要
+}
+
+const TASKS_PER_PAGE_CATEGORY = 9; // カテゴリ内のタスク表示件数
+
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openCategoryId, setOpenCategoryId] = useState<string | null>(null);
+  const [categoryTaskPages, setCategoryTaskPages] = useState<Record<string, number>>({}); // カテゴリごとのページ状態
+  const [isFormOpen, setIsFormOpen] = useState(false); // フォームの開閉状態
+  const [editingTask, setEditingTask] = useState<Task | null>(null); // 編集中のタスク
 
   useEffect(() => {
-    fetchCategories();
+    fetchData();
   }, []);
 
-  const fetchCategories = async () => {
+  const fetchData = async () => {
     setLoading(true);
     setError(null);
-    const { data, error } = await supabase
-      .from('categories')
-      .select('id, name');
+    try {
+      const [categoriesRes, tasksRes] = await Promise.all([
+        supabase.from('categories').select('id, name'),
+        supabase.from('tasks').select('id, name, dueDate, completed, categoryId, description, createdAt') // descriptionとcreatedAtを追加
+      ]);
 
-    if (error) {
-      console.error('Error fetching categories:', error);
-      setError(error.message);
-    } else {
-      setCategories(data || []);
+      if (categoriesRes.error) throw categoriesRes.error;
+      if (tasksRes.error) throw tasksRes.error;
+
+      setCategories(categoriesRes.data || []);
+      // completedをstatusに変換
+      const formattedTasks = (tasksRes.data || []).map(task => ({
+        ...task,
+        status: (task.completed ? 'completed' : 'todo') as 'todo' | 'in-progress' | 'completed'
+      }));
+      setTasks(formattedTasks);
+
+    } catch (err: any) {
+      console.error('Error fetching data:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleAddCategory = async (e: React.FormEvent) => {
@@ -52,9 +85,59 @@ export default function CategoriesPage() {
       setError(error.message);
       alert('カテゴリの追加に失敗しました。');
     } else if (data) {
-      setCategories([...categories, data[0]]);
       setNewCategoryName('');
+      fetchData(); // データを再取得してUIを更新
     }
+  };
+
+  const handleStatusUpdate = async (taskId: string, newStatus: 'todo' | 'in-progress' | 'completed') => {
+    const completed = newStatus === 'completed';
+    const { error } = await supabase
+      .from('tasks')
+      .update({ completed: completed })
+      .eq('id', taskId);
+
+    if (error) {
+      console.error('Error updating task status:', error);
+      alert('タスクステータスの更新に失敗しました。');
+    } else {
+      fetchData(); // データ再取得
+    }
+  };
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask({ ...task, status: task.completed ? 'completed' : 'todo' });
+    setIsFormOpen(true);
+  };
+
+  const handleTaskChange = () => {
+    // タスクが変更されたらデータを再取得
+    fetchData();
+  };
+
+  const handleFormClose = () => {
+    setIsFormOpen(false);
+    setEditingTask(null);
+  };
+
+  const handleFormSubmit = async (savedTask: Task) => { // savedTaskを引数として受け取る
+    // tasksステートを直接更新
+    setTasks(prevTasks => {
+      const existingTaskIndex = prevTasks.findIndex(t => t.id === savedTask.id);
+      if (existingTaskIndex > -1) {
+        return prevTasks.map(t => t.id === savedTask.id ? savedTask : t);
+      } else {
+        return [...prevTasks, savedTask];
+      }
+    });
+    handleFormClose();
+  };
+
+  const handleCategoryPageChange = (categoryId: string, page: number) => {
+    setCategoryTaskPages(prev => ({
+      ...prev,
+      [categoryId]: page
+    }));
   };
 
   const handleUpdateCategory = async (e: React.FormEvent) => {
@@ -75,10 +158,8 @@ export default function CategoriesPage() {
       setError(error.message);
       alert('カテゴリの更新に失敗しました。');
     } else if (data) {
-      setCategories(categories.map(cat =>
-        cat.id === data[0].id ? data[0] : cat
-      ));
       setEditingCategory(null);
+      fetchData(); // データを再取得してUIを更新
     }
   };
 
@@ -111,7 +192,7 @@ export default function CategoriesPage() {
       setError(error.message);
       alert('カテゴリの削除に失敗しました。');
     } else {
-      setCategories(categories.filter(cat => cat.id !== id));
+      fetchData(); // データを再取得してUIを更新
     }
   };
 
@@ -163,28 +244,84 @@ export default function CategoriesPage() {
         </form>
 
         {/* カテゴリリスト */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {categories.map(category => (
-            <div key={category.id} className="bg-white border border-gray-200 rounded-lg p-4 flex justify-between items-center shadow-sm dark:bg-gray-700 dark:border-gray-600">
-              <span className="text-gray-800 font-medium dark:text-gray-100">{category.name}</span>
-              <div>
-                <button
-                  onClick={() => setEditingCategory(category)}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold py-1 px-2 rounded mr-2"
+        <div className="space-y-4">
+          {categories.map(category => {
+            const categoryTasks = tasks.filter(task => task.categoryId === category.id);
+            const isOpen = openCategoryId === category.id;
+            const currentCategoryPage = categoryTaskPages[category.id] || 0;
+
+            const paginatedCategoryTasks = categoryTasks.slice(
+              currentCategoryPage * TASKS_PER_PAGE_CATEGORY,
+              (currentCategoryPage + 1) * TASKS_PER_PAGE_CATEGORY
+            );
+            const totalCategoryPages = Math.ceil(categoryTasks.length / TASKS_PER_PAGE_CATEGORY);
+
+            return (
+              <div key={category.id} className="bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-700 dark:border-gray-600">
+                <div 
+                  className="p-4 flex justify-between items-center cursor-pointer"
+                  onClick={() => setOpenCategoryId(isOpen ? null : category.id)}
                 >
-                  編集
-                </button>
-                <button
-                  onClick={() => handleDeleteCategory(category.id)}
-                  className="bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-1 px-2 rounded"
-                >
-                  削除
-                </button>
+                  <span className="text-gray-800 font-medium dark:text-gray-100">{category.name} ({categoryTasks.length})</span>
+                  <div className="flex items-center">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingCategory(category); }}
+                      className="bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold py-1 px-2 rounded mr-2"
+                    >
+                      編集
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteCategory(category.id); }}
+                      className="bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-1 px-2 rounded mr-2"
+                    >
+                      削除
+                    </button>
+                    <svg className={`w-5 h-5 transform transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </div>
+                </div>
+                {isOpen && (
+                  <div className="border-t border-gray-200 dark:border-gray-600 p-4">
+                    {paginatedCategoryTasks.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {paginatedCategoryTasks.map(task => (
+                          <TaskItem
+                            key={task.id}
+                            task={{ ...task, status: task.completed ? 'completed' : 'todo' }} // TaskItemに合わせる
+                            onEditTask={handleEditTask}
+                            onTaskChange={handleTaskChange}
+                            onStatusUpdate={handleStatusUpdate}
+                            categories={categories} // カテゴリ情報を渡す
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">このカテゴリにはタスクがありません。</p>
+                    )}
+                    {totalCategoryPages > 1 && (
+                      <div className="mt-4">
+                        <Pagination
+                          currentPage={currentCategoryPage}
+                          totalPages={totalCategoryPages}
+                          onPageChange={(page) => handleCategoryPageChange(category.id, page)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
+
+      {isFormOpen && (
+        <TaskForm
+          task={editingTask}
+          onClose={handleFormClose}
+          onSubmit={handleFormSubmit}
+          categories={categories}
+        />
+      )}
     </div>
   );
 }

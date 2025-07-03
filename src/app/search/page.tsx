@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import TaskItem from '@/components/TaskItem'; // TaskItemをインポート
+import Pagination from '@/components/Pagination'; // Paginationをインポート
+import TaskForm from '@/components/TaskForm'; // TaskFormをインポート
 
 interface Task {
   id: string;
@@ -19,6 +21,8 @@ interface Category {
   name: string;
 }
 
+const ITEMS_PER_PAGE = 9;
+
 export default function SearchPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
@@ -26,6 +30,9 @@ export default function SearchPage() {
   const [searchResults, setSearchResults] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [isFormOpen, setIsFormOpen] = useState(false); // フォームの開閉状態
+  const [editingTask, setEditingTask] = useState<Task | null>(null); // 編集中のタスク
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -47,32 +54,57 @@ export default function SearchPage() {
     setLoading(true);
     setError(null);
     setSearchResults([]);
+    setCurrentPage(0); // 検索時にページをリセット
 
-    let query = supabase.from('tasks').select('*, categories(name)');
+    try {
+      const params = new URLSearchParams();
+      if (selectedCategory) {
+        params.append('categoryId', selectedCategory);
+      }
+      if (keyword) {
+        params.append('keyword', keyword);
+      }
 
-    if (selectedCategory) {
-      query = query.eq('categoryId', selectedCategory);
-    }
+      const response = await fetch(`/api/tasks/search?${params.toString()}`);
 
-    if (keyword) {
-      query = query.ilike('name', `%{keyword}%`);
-    }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to search tasks');
+      }
 
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error searching tasks:', error);
-      setError(error.message);
-    } else {
+      const data = await response.json();
       setSearchResults(data || []);
+    } catch (err: any) {
+      console.error('Error searching tasks:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  // TaskItemに渡すダミー関数
   const handleEditTask = (task: Task) => {
-    alert(`タスク編集: ${task.name}`);
-    // ここで編集モーダルを開くなどのロジックを実装
+    setEditingTask(task);
+    setIsFormOpen(true);
+  };
+
+  const handleFormClose = () => {
+    setIsFormOpen(false);
+    setEditingTask(null);
+  };
+
+  const handleFormSubmit = async (savedTask: Task) => { // savedTaskを引数として受け取る
+    // searchResultsを直接更新
+    setSearchResults(prevResults => {
+      const existingTaskIndex = prevResults.findIndex(t => t.id === savedTask.id);
+      if (existingTaskIndex > -1) {
+        // 既存のタスクを更新
+        return prevResults.map(t => t.id === savedTask.id ? { ...savedTask, status: savedTask.completed ? 'completed' : 'todo' } : t);
+      } else {
+        // 新しいタスクを追加 (検索ページでは通常発生しないが念のため)
+        return [...prevResults, { ...savedTask, status: savedTask.completed ? 'completed' : 'todo' }];
+      }
+    });
+    handleFormClose();
   };
 
   const handleTaskChange = () => {
@@ -88,6 +120,15 @@ export default function SearchPage() {
       )
     );
   };
+
+  // ページングのための計算
+  const paginatedResults = useMemo(() => {
+    const startIndex = currentPage * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return searchResults.slice(startIndex, endIndex);
+  }, [searchResults, currentPage]);
+
+  const totalPages = Math.ceil(searchResults.length / ITEMS_PER_PAGE);
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 dark:bg-gray-900">
@@ -132,18 +173,29 @@ export default function SearchPage() {
         {error && <p className="text-center text-red-500 text-lg dark:text-red-300">エラー: {error}</p>}
 
         {!loading && !error && searchResults.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {searchResults.map(task => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onEditTask={handleEditTask}
-                onTaskChange={handleTaskChange}
-                onStatusUpdate={handleStatusUpdate}
-                categories={categories}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {paginatedResults.map(task => (
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onEditTask={handleEditTask}
+                  onTaskChange={handleTaskChange}
+                  onStatusUpdate={handleStatusUpdate}
+                  categories={categories}
+                />
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <div className="mt-8">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            )}
+          </>
         )}
 
         {!loading && !error && searchResults.length === 0 && (keyword || selectedCategory) && (
@@ -152,6 +204,15 @@ export default function SearchPage() {
 
         {!loading && !error && searchResults.length === 0 && !keyword && !selectedCategory && (
           <p className="text-center text-gray-500 text-lg dark:text-gray-400">検索条件を入力してタスクを検索してください。</p>
+        )}
+
+        {isFormOpen && (
+          <TaskForm
+            task={editingTask}
+            onClose={handleFormClose}
+            onSubmit={handleFormSubmit}
+            categories={categories}
+          />
         )}
       </div>
     </div>

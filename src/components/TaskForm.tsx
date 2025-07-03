@@ -8,7 +8,8 @@ interface Task {
   status: 'todo' | 'in-progress' | 'completed';
   createdAt: string;
   dueDate: string;
-  categoryId?: string; // カテゴリIDを追加
+  categoryId?: string;
+  description?: string; // 追加: descriptionプロパティ
 }
 
 interface Category {
@@ -19,7 +20,7 @@ interface Category {
 interface TaskFormProps {
   task: Task | null; // 編集時はタスクオブジェクト、新規作成時はnull
   onClose: () => void;
-  onSubmit: () => void;
+  onSubmit: (savedTask: Task) => void; // 変更: 保存されたタスクを引数として受け取る
   categories: Category[]; // カテゴリリストを追加
 }
 
@@ -75,7 +76,8 @@ export default function TaskForm({ task, onClose, onSubmit, categories }: TaskFo
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      onSubmit(); // 親コンポーネントに通知してタスクリストを再取得
+      const savedTask = await response.json(); // 保存されたタスクを取得
+      onSubmit(savedTask); // 保存されたタスクを親コンポーネントに渡す
     } catch (error) {
       console.error('Failed to save task:', error);
       alert('タスクの保存に失敗しました。');

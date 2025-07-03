@@ -9,6 +9,8 @@ interface Task {
   createdAt: string;
   dueDate: string;
   categoryId?: string;
+  description?: string; // 追加
+  completed: boolean; // 追加
 }
 
 interface Category {

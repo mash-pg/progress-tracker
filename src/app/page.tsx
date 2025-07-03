@@ -106,10 +106,17 @@ export default function Home() {
     setEditingTask(null);
   };
 
-  const handleFormSubmit = async () => {
-    console.log('handleFormSubmit: Before fetching tasks, current task count:', tasks.length);
-    await fetchTasks(selectedMonth!); // データ更新後に再取得
-    console.log('handleFormSubmit: After fetching tasks, new task count:', tasks.length);
+  const handleFormSubmit = async (savedTask: Task) => {
+    setTasks(prevTasks => {
+      const existingTaskIndex = prevTasks.findIndex(t => t.id === savedTask.id);
+      if (existingTaskIndex > -1) {
+        // 既存のタスクを更新
+        return prevTasks.map(t => t.id === savedTask.id ? { ...savedTask, status: savedTask.completed ? 'completed' : 'todo' } : t);
+      } else {
+        // 新しいタスクを追加
+        return [...prevTasks, { ...savedTask, status: savedTask.completed ? 'completed' : 'todo' }];
+      }
+    });
     handleFormClose();
   };
 
