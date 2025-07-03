@@ -35,7 +35,7 @@ export default function TaskForm({ task, onClose, onSubmit, categories }: TaskFo
     if (task) {
       setName(task.name);
       setDueDate(task.dueDate);
-      setStatus(task.status);
+      setStatus(task.app_status);
       setCategoryId(task.categoryId);
     } else {
       // 新規作成時は今日の日付をデフォルトに
