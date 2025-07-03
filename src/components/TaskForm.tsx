@@ -20,7 +20,7 @@ interface Category {
 interface TaskFormProps {
   task: Task | null; // 編集時はタスクオブジェクト、新規作成時はnull
   onClose: () => void;
-  onSubmit: (savedTask: Task) => void; // 変更: 保存されたタスクを引数として受け取る
+  onSubmit: (savedTask: Task) => void | Promise<void>; // 変更: Promise<void>を許容
   categories: Category[]; // カテゴリリストを追加
 }
 
