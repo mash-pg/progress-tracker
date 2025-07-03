@@ -14,6 +14,7 @@ interface Task {
   createdAt: string;
   dueDate: string;
   categoryId?: string;
+  completed: boolean; // 追加
 }
 
 interface Category {
