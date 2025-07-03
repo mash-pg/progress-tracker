@@ -99,10 +99,10 @@ export default function SearchPage() {
       const existingTaskIndex = prevResults.findIndex(t => t.id === savedTask.id);
       if (existingTaskIndex > -1) {
         // 既存のタスクを更新
-        return prevResults.map(t => t.id === savedTask.id ? { ...savedTask, status: savedTask.completed ? 'completed' : 'todo' } : t);
+        return prevResults.map(t => t.id === savedTask.id ? savedTask : t);
       } else {
         // 新しいタスクを追加 (検索ページでは通常発生しないが念のため)
-        return [...prevResults, { ...savedTask, status: savedTask.completed ? 'completed' : 'todo' }];
+        return [...prevResults, savedTask];
       }
     });
     handleFormClose();

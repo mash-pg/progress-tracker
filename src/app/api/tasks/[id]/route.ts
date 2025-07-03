@@ -63,7 +63,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     return NextResponse.json({ ...existingTask, status: existingTask.completed ? 'completed' : 'todo' }, { status: 200 });
   }
 
-  return NextResponse.json({ ...updatedTask[0], status: completedForDb ? 'completed' : 'todo' });
+  return NextResponse.json({ ...updatedTask[0], status: status });
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {

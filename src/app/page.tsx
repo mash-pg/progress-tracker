@@ -112,10 +112,10 @@ export default function Home() {
       const existingTaskIndex = prevTasks.findIndex(t => t.id === savedTask.id);
       if (existingTaskIndex > -1) {
         // 既存のタスクを更新
-        return prevTasks.map(t => t.id === savedTask.id ? { ...savedTask, status: savedTask.completed ? 'completed' : 'todo' } : t);
+        return prevTasks.map(t => t.id === savedTask.id ? savedTask : t);
       } else {
         // 新しいタスクを追加
-        return [...prevTasks, { ...savedTask, status: savedTask.completed ? 'completed' : 'todo' }];
+        return [...prevTasks, savedTask];
       }
     });
     handleFormClose();
