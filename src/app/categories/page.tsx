@@ -244,7 +244,7 @@ export default function CategoriesPage() {
         </form>
 
         {/* カテゴリリスト */}
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {categories.map(category => {
             const categoryTasks = tasks.filter(task => task.categoryId === category.id);
             const isOpen = openCategoryId === category.id;
