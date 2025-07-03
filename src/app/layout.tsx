@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import HamburgerMenu from '@/components/HamburgerMenu'; // HamburgerMenuをインポート
 
+
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [darkMode, setDarkMode] = useState(false);
 
@@ -35,6 +37,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="ja" className={darkMode ? 'dark' : ''}>
+      <head>
+        <title>進捗管理アプリ</title>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+      </head>
       <body>
         {/* スマホサイズではハンバーガーメニューを表示 */}
         <div className="md:hidden">
