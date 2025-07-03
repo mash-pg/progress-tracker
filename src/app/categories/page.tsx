@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
+import { v4 as uuidv4 } from 'uuid'; // uuidをインポート
 import TaskItem from '@/components/TaskItem'; // TaskItemをインポート
 import Pagination from '@/components/Pagination'; // Paginationをインポート
 import TaskForm from '@/components/TaskForm'; // TaskFormをインポート
@@ -75,9 +76,11 @@ export default function CategoriesPage() {
       return;
     }
 
+    const newId = uuidv4();
+
     const { data, error } = await supabase
       .from('categories')
-      .insert([{ name: newCategoryName.trim() }])
+      .insert([{ id: newId, name: newCategoryName.trim() }])
       .select();
 
     if (error) {
