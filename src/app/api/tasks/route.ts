@@ -120,6 +120,7 @@ export async function PUT(request: Request) {
   const categoryId = searchParams.get('categoryId');
   const keyword = searchParams.get('keyword');
   const dueDate = searchParams.get('dueDate');
+  const status = searchParams.get('status'); // ここにstatusを追加
   const body = await request.json();
   const { app_status } = body;
 
@@ -132,7 +133,7 @@ export async function PUT(request: Request) {
   let query = supabase.from('tasks').update({ app_status: app_status });
   let hasWhereClause = false;
 
-  // categoryId, keyword, dueDate は AND 条件として適用
+  // categoryId, keyword, dueDate, status は AND 条件として適用
   if (categoryId) {
     query = query.eq('categoryId', categoryId);
     hasWhereClause = true;
@@ -143,6 +144,10 @@ export async function PUT(request: Request) {
   }
   if (dueDate) {
     query = query.eq('dueDate', dueDate);
+    hasWhereClause = true;
+  }
+  if (status) { // ここにstatusの条件を追加
+    query = query.eq('app_status', status);
     hasWhereClause = true;
   }
 
