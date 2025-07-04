@@ -87,43 +87,39 @@ export default function SearchPage() {
   };
 
   const handleBulkUpdateStatus = async (newAppStatus: Task['app_status']) => {
-    if (!confirm(`検索結果のタスクを全て「${newAppStatus}」にしてもよろしいですか？`)) {
+    if (selectedTasks.length === 0) {
+      alert('ステータスを更新するタスクを選択してください。');
       return;
     }
-
-    // カテゴリ、キーワード、期日、ステータスが全て空の場合はエラー
-    if (!selectedCategory && !keyword && !dueDate && !selectedStatus) { // ここも更新
-      alert('一括ステータス更新を行うには、カテゴリ、キーワード、期日、またはステータスのいずれかを指定してください。');
+    if (!confirm(`${selectedTasks.length}件のタスクのステータスを「${newAppStatus}」に更新してもよろしいですか？`)) {
       return;
     }
 
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (selectedCategory) {
-        params.append('categoryId', selectedCategory);
-      }
-      if (keyword) {
-        params.append('keyword', keyword);
-      }
-      if (dueDate) {
-        params.append('dueDate', dueDate);
-      }
-      if (selectedStatus) { // ここにselectedStatusを追加
-        params.append('status', selectedStatus);
-      }
-      const response = await fetch(`/api/tasks?${params.toString()}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ app_status: newAppStatus }),
-      });
+      const response = await fetch(`/api/tasks/bulk-update-status`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: selectedTasks, app_status: newAppStatus }),
+        }
+      );
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
-      handleSearch(); // 検索結果を再取得
+
+      // UIを即座に更新
+      setSearchResults(prev =>
+        prev.map(task =>
+          selectedTasks.includes(task.id) ? { ...task, app_status: newAppStatus } : task
+        )
+      );
+      setSelectedTasks([]); // 選択をクリア
+
     } catch (e: any) {
-      console.error('Failed to bulk update tasks:', e);
+      console.error('Failed to bulk update task statuses:', e);
       setError(e.message);
     } finally {
       setLoading(false);
