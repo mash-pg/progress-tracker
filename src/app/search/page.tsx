@@ -38,6 +38,13 @@ export default function SearchPage() {
     if (!confirm('検索結果のタスクを全て削除してもよろしいですか？この操作は元に戻せません。')) {
       return;
     }
+
+    // カテゴリとキーワードが両方空の場合はエラー
+    if (!selectedCategory && !keyword) {
+      alert('一括削除を行うには、カテゴリまたはキーワードのいずれかを指定してください。');
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -51,7 +58,8 @@ export default function SearchPage() {
         method: 'DELETE',
       });
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
       handleSearch(); // 検索結果を再取得
     } catch (e: any) {
@@ -66,6 +74,13 @@ export default function SearchPage() {
     if (!confirm(`検索結果のタスクを全て「${newAppStatus}」にしてもよろしいですか？`)) {
       return;
     }
+
+    // カテゴリとキーワードが両方空の場合はエラー
+    if (!selectedCategory && !keyword) {
+      alert('一括ステータス更新を行うには、カテゴリまたはキーワードのいずれかを指定してください。');
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -81,7 +96,8 @@ export default function SearchPage() {
         body: JSON.stringify({ app_status: newAppStatus }),
       });
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
       handleSearch(); // 検索結果を再取得
     } catch (e: any) {

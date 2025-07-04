@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { supabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid'; // uuidをインポート
 
@@ -150,5 +151,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ message: 'Error bulk updating tasks', error: error.message }, { status: 500 });
   }
 
+  revalidatePath('/search');
+  revalidatePath('/');
   return new NextResponse(null, { status: 200 });
 }
