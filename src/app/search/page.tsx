@@ -28,6 +28,7 @@ export default function SearchPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [keyword, setKeyword] = useState('');
   const [dueDate, setDueDate] = useState<string | undefined>(undefined);
+  const [selectedStatus, setSelectedStatus] = useState<Task['app_status'] | undefined>(undefined);
   const [searchResults, setSearchResults] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,9 +41,9 @@ export default function SearchPage() {
       return;
     }
 
-    // カテゴリ、キーワード、期日が全て空の場合はエラー
-    if (!selectedCategory && !keyword && !dueDate) {
-      alert('一括削除を行うには、カテゴリ、キーワード、または期日のいずれかを指定してください。');
+    // カテゴリ、キーワード、期日、ステータスが全て空の場合はエラー
+    if (!selectedCategory && !keyword && !dueDate && !selectedStatus) {
+      alert('一括削除を行うには、カテゴリ、キーワード、期日、またはステータスのいずれかを指定してください。');
       return;
     }
 
@@ -54,6 +55,12 @@ export default function SearchPage() {
       }
       if (keyword) {
         params.append('keyword', keyword);
+      }
+      if (dueDate) {
+        params.append('dueDate', dueDate);
+      }
+      if (selectedStatus) { // ここにselectedStatusを追加
+        params.append('status', selectedStatus);
       }
       const response = await fetch(`/api/tasks?${params.toString()}`, {
         method: 'DELETE',
@@ -76,9 +83,9 @@ export default function SearchPage() {
       return;
     }
 
-    // カテゴリ、キーワード、期日が全て空の場合はエラー
-    if (!selectedCategory && !keyword && !dueDate) {
-      alert('一括ステータス更新を行うには、カテゴリ、キーワード、または期日のいずれかを指定してください。');
+    // カテゴリ、キーワード、期日、ステータスが全て空の場合はエラー
+    if (!selectedCategory && !keyword && !dueDate && !selectedStatus) { // ここも更新
+      alert('一括ステータス更新を行うには、カテゴリ、キーワード、期日、またはステータスのいずれかを指定してください。');
       return;
     }
 
@@ -93,6 +100,9 @@ export default function SearchPage() {
       }
       if (dueDate) {
         params.append('dueDate', dueDate);
+      }
+      if (selectedStatus) { // ここにselectedStatusを追加
+        params.append('status', selectedStatus);
       }
       const response = await fetch(`/api/tasks?${params.toString()}`, {
         method: 'PUT',
@@ -144,6 +154,9 @@ export default function SearchPage() {
       }
       if (dueDate) {
         params.append('dueDate', dueDate);
+      }
+      if (selectedStatus) { // ここにselectedStatusを追加
+        params.append('status', selectedStatus);
       }
 
       const response = await fetch(`/api/tasks/search?${params.toString()}`);
@@ -251,6 +264,20 @@ export default function SearchPage() {
               value={dueDate || ''}
               onChange={(e) => setDueDate(e.target.value || undefined)}
             />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="statusFilter" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">ステータスで絞り込み:</label>
+            <select
+              id="statusFilter"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+              value={selectedStatus || ''}
+              onChange={(e) => setSelectedStatus(e.target.value as Task['app_status'] || undefined)}
+            >
+              <option value="">全ステータス</option>
+              <option value="todo">未着手</option>
+              <option value="in-progress">作業中</option>
+              <option value="completed">完了</option>
+            </select>
           </div>
           <div className="flex space-x-2">
             <button

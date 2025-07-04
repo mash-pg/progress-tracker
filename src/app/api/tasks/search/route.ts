@@ -45,7 +45,6 @@ export async function GET(request: Request) {
 
     const formattedTasks = tasks.map(task => ({
       ...task,
-      status: task.completed ? 'completed' : 'todo',
       categoryName: task.categories ? task.categories.name : null,
     }));
 
