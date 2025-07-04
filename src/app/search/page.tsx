@@ -27,6 +27,7 @@ export default function SearchPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [keyword, setKeyword] = useState('');
+  const [dueDate, setDueDate] = useState<string | undefined>(undefined);
   const [searchResults, setSearchResults] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,9 +40,9 @@ export default function SearchPage() {
       return;
     }
 
-    // カテゴリとキーワードが両方空の場合はエラー
-    if (!selectedCategory && !keyword) {
-      alert('一括削除を行うには、カテゴリまたはキーワードのいずれかを指定してください。');
+    // カテゴリ、キーワード、期日が全て空の場合はエラー
+    if (!selectedCategory && !keyword && !dueDate) {
+      alert('一括削除を行うには、カテゴリ、キーワード、または期日のいずれかを指定してください。');
       return;
     }
 
@@ -75,9 +76,9 @@ export default function SearchPage() {
       return;
     }
 
-    // カテゴリとキーワードが両方空の場合はエラー
-    if (!selectedCategory && !keyword) {
-      alert('一括ステータス更新を行うには、カテゴリまたはキーワードのいずれかを指定してください。');
+    // カテゴリ、キーワード、期日が全て空の場合はエラー
+    if (!selectedCategory && !keyword && !dueDate) {
+      alert('一括ステータス更新を行うには、カテゴリ、キーワード、または期日のいずれかを指定してください。');
       return;
     }
 
@@ -89,6 +90,9 @@ export default function SearchPage() {
       }
       if (keyword) {
         params.append('keyword', keyword);
+      }
+      if (dueDate) {
+        params.append('dueDate', dueDate);
       }
       const response = await fetch(`/api/tasks?${params.toString()}`, {
         method: 'PUT',
@@ -137,6 +141,9 @@ export default function SearchPage() {
       }
       if (keyword) {
         params.append('keyword', keyword);
+      }
+      if (dueDate) {
+        params.append('dueDate', dueDate);
       }
 
       const response = await fetch(`/api/tasks/search?${params.toString()}`);
@@ -233,6 +240,16 @@ export default function SearchPage() {
               placeholder="タスク名で検索"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
+            />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="dueDateSearch" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">期日:</label>
+            <input
+              type="date"
+              id="dueDateSearch"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+              value={dueDate || ''}
+              onChange={(e) => setDueDate(e.target.value || undefined)}
             />
           </div>
           <div className="flex space-x-2">

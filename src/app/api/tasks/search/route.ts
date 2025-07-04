@@ -5,6 +5,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const categoryId = searchParams.get('categoryId');
   const keyword = searchParams.get('keyword');
+  const dueDate = searchParams.get('dueDate');
+  const status = searchParams.get('status');
 
   try {
     let query = supabase.from('tasks').select(`
@@ -20,6 +22,14 @@ export async function GET(request: Request) {
 
     if (keyword) {
       query = query.ilike('name', `%${keyword}%`);
+    }
+
+    if (dueDate) {
+      query = query.eq('dueDate', dueDate);
+    }
+
+    if (status) {
+      query = query.eq('app_status', status);
     }
 
     const { data: tasks, error } = await query;

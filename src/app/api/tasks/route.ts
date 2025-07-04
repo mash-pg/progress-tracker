@@ -119,6 +119,7 @@ export async function PUT(request: Request) {
   const { searchParams } = new URL(request.url);
   const categoryId = searchParams.get('categoryId');
   const keyword = searchParams.get('keyword');
+  const dueDate = searchParams.get('dueDate');
   const body = await request.json();
   const { app_status } = body;
 
@@ -126,16 +127,22 @@ export async function PUT(request: Request) {
     return NextResponse.json({ message: 'app_status is required' }, { status: 400 });
   }
 
+  console.log('Received dueDate for PUT:', dueDate); // Add this line for debugging
+
   let query = supabase.from('tasks').update({ app_status: app_status });
   let hasWhereClause = false;
 
-  // categoryId と keyword は AND 条件として適用
+  // categoryId, keyword, dueDate は AND 条件として適用
   if (categoryId) {
     query = query.eq('categoryId', categoryId);
     hasWhereClause = true;
   }
   if (keyword) {
     query = query.ilike('name', `%${keyword}%`);
+    hasWhereClause = true;
+  }
+  if (dueDate) {
+    query = query.eq('dueDate', dueDate);
     hasWhereClause = true;
   }
 
