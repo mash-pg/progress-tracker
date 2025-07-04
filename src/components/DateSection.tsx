@@ -129,7 +129,14 @@ export default function DateSection({
         {tasks.length > 0 ? (
           <div className="grid grid-cols-1 gap-2">
             {paginatedTasks.map(task => (
-              <TaskItem key={task.id} task={task} onEditTask={onEditTask} onTaskChange={onTaskChange} onStatusUpdate={onStatusUpdate} categories={categories} />
+              <TaskItem
+                key={task.id}
+                task={task}
+                onEditTask={onEditTask}
+                onTaskChange={onTaskChange}
+                onStatusUpdate={onStatusUpdate}
+                categories={categories}
+              />
             ))}
           </div>
         ) : (

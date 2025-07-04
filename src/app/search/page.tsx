@@ -36,42 +36,50 @@ export default function SearchPage() {
   const [isFormOpen, setIsFormOpen] = useState(false); // フォームの開閉状態
   const [editingTask, setEditingTask] = useState<Task | null>(null); // 編集中のタスク
 
-  const handleBulkDelete = async () => {
-    if (!confirm('検索結果のタスクを全て削除してもよろしいですか？この操作は元に戻せません。')) {
+  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
+
+  const handleSelectionChange = (taskId: string, isSelected: boolean) => {
+    setSelectedTasks(prev =>
+      isSelected ? [...prev, taskId] : prev.filter(id => id !== taskId)
+    );
+  };
+
+  const handleSelectAll = (isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedTasks(paginatedResults.map(task => task.id));
+    } else {
+      setSelectedTasks([]);
+    }
+  };
+
+  const handleBulkDeleteSelected = async () => {
+    if (selectedTasks.length === 0) {
+      alert('削除するタスクを選択してください。');
       return;
     }
-
-    // カテゴリ、キーワード、期日、ステータスが全て空の場合はエラー
-    if (!selectedCategory && !keyword && !dueDate && !selectedStatus) {
-      alert('一括削除を行うには、カテゴリ、キーワード、期日、またはステータスのいずれかを指定してください。');
+    if (!confirm(`${selectedTasks.length}件のタスクを削除してもよろしいですか？`)) {
       return;
     }
 
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (selectedCategory) {
-        params.append('categoryId', selectedCategory);
-      }
-      if (keyword) {
-        params.append('keyword', keyword);
-      }
-      if (dueDate) {
-        params.append('dueDate', dueDate);
-      }
-      if (selectedStatus) { // ここにselectedStatusを追加
-        params.append('status', selectedStatus);
-      }
-      const response = await fetch(`/api/tasks?${params.toString()}`, {
+      const response = await fetch(`/api/tasks`, {
         method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedTasks }),
       });
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
-      handleSearch(); // 検索結果を再取得
+
+      // UIから削除されたタスクを即座に反映
+      setSearchResults(prev => prev.filter(task => !selectedTasks.includes(task.id)));
+      setSelectedTasks([]); // 選択状態をクリア
+
     } catch (e: any) {
-      console.error('Failed to bulk delete tasks:', e);
+      console.error('Failed to delete selected tasks:', e);
       setError(e.message);
     } finally {
       setLoading(false);
@@ -300,10 +308,11 @@ export default function SearchPage() {
                 </select>
                 <button
                   type="button"
-                  onClick={handleBulkDelete}
-                  className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline dark:bg-red-600 dark:hover:bg-red-700"
+                  onClick={handleBulkDeleteSelected}
+                  disabled={selectedTasks.length === 0}
+                  className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:bg-gray-400 dark:bg-red-600 dark:hover:bg-red-700 dark:disabled:bg-gray-500"
                 >
-                  検索結果を全て削除
+                  選択したタスクを削除 ({selectedTasks.length})
                 </button>
               </div>
             )}
@@ -315,6 +324,19 @@ export default function SearchPage() {
 
         {!loading && !error && searchResults.length > 0 && (
           <>
+            {searchResults.length > 0 && (
+              <div className="flex items-center space-x-2 mt-4">
+                <input
+                  type="checkbox"
+                  id="selectAllCheckbox"
+                  className="h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  checked={selectedTasks.length > 0 && selectedTasks.length === paginatedResults.length}
+                />
+                <label htmlFor="selectAllCheckbox" className="text-sm font-medium text-gray-700 dark:text-gray-300">このページのタスクをすべて選択</label>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {paginatedResults.map(task => (
                 <TaskItem
@@ -324,6 +346,8 @@ export default function SearchPage() {
                   onTaskChange={handleTaskChange}
                   onStatusUpdate={handleStatusUpdate}
                   categories={categories}
+                  isSelected={selectedTasks.includes(task.id)}
+                  onSelectionChange={handleSelectionChange}
                 />
               ))}
             </div>

@@ -20,58 +20,61 @@ interface Category {
 interface TaskItemProps {
   task: Task;
   onEditTask: (task: Task) => void;
-  onTaskChange: () => void; // タスク変更後に親に通知するためのコールバック (削除、編集フォームからの保存)
-  onStatusUpdate: (taskId: string, newAppStatus: Task['app_status']) => void; // ステータス変更時の楽観的更新用
-  categories: Category[]; // カテゴリリストを追加
+  onTaskChange: () => void;
+  onStatusUpdate: (taskId: string, newAppStatus: Task['app_status']) => void;
+  categories: Category[];
+  isSelected?: boolean;
+  onSelectionChange?: (taskId: string, isSelected: boolean) => void;
 }
 
-export default function TaskItem({ task, onEditTask, onTaskChange, onStatusUpdate, categories }: TaskItemProps) {
+export default function TaskItem({
+  task,
+  onEditTask,
+  onTaskChange,
+  onStatusUpdate,
+  categories,
+  isSelected,
+  onSelectionChange,
+}: TaskItemProps) {
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleStatusChange = async (newAppStatus: Task['app_status']) => {
-    setIsStatusDropdownOpen(false); // プルダウンを閉じる
+    setIsStatusDropdownOpen(false);
 
-    if (newAppStatus === task.app_status) return; // 同じステータスなら何もしない
+    if (newAppStatus === task.app_status) return;
 
-    // 楽観的UI更新
     const originalStatus = task.app_status;
     onStatusUpdate(task.id, newAppStatus);
 
     try {
       const response = await fetch(`/api/tasks/${task.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ app_status: newAppStatus }),
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      // 成功時は何もしない（既にUIは更新済み）
     } catch (error) {
       console.error('Failed to update task status:', error);
       alert('ステータスの更新に失敗しました。UIを元に戻します。');
-      onStatusUpdate(task.id, originalStatus); // 失敗時はUIを元に戻す
+      onStatusUpdate(task.id, originalStatus);
     }
   };
 
   const handleDelete = async () => {
     if (confirm(`タスク「${task.name}」を削除しますか？`)) {
-      console.log('TaskItem: Attempting to delete task with ID:', task.id);
       try {
         const response = await fetch(`/api/tasks/${task.id}`, {
           method: 'DELETE',
         });
 
-        console.log('TaskItem: Delete response OK:', response.ok, 'Status:', response.status);
-
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        onTaskChange(); // 変更を親に通知してタスクリストを再取得
+        onTaskChange();
       } catch (error) {
         console.error('Failed to delete task:', error);
         alert('タスクの削除に失敗しました。');
@@ -98,7 +101,6 @@ export default function TaskItem({ task, onEditTask, onTaskChange, onStatusUpdat
     }
   };
 
-  // ドロップダウン外をクリックしたら閉じる
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -114,20 +116,36 @@ export default function TaskItem({ task, onEditTask, onTaskChange, onStatusUpdat
   const categoryName = task.categoryId && categories ? categories.find(cat => cat.id === task.categoryId)?.name : '未分類';
 
   return (
-    <div className="task-item bg-white border border-gray-200 rounded-lg p-2 flex flex-col shadow-sm hover:shadow-md transition duration-300 ease-in-out dark:bg-gray-800 dark:border-gray-700 min-h-[90px]"> {/* min-hを調整 */}
-      <div className="flex-grow cursor-pointer" onClick={(e) => { e.stopPropagation(); onEditTask(task); }}>
-        <h3 className="text-sm font-semibold text-gray-800 mb-0.5 dark:text-gray-100 truncate">{task.name}</h3>
-        <p className="text-xs text-gray-600 dark:text-gray-300">カテゴリ: {categoryName}</p>
-        <p className="text-xs text-gray-600 dark:text-gray-300">作成日時: {new Date(task.createdAt).toLocaleString()}</p>
-        <p className="text-xs text-gray-600 dark:text-gray-300">期日: {task.dueDate}</p>
+    <div className="task-item bg-white border border-gray-200 rounded-lg p-3 flex flex-col shadow-sm hover:shadow-md transition duration-300 ease-in-out dark:bg-gray-800 dark:border-gray-700 h-full">
+      <div className="flex-grow mb-2">
+        <div className="flex items-start mb-1">
+          {onSelectionChange && (
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={(e) => onSelectionChange(task.id, e.target.checked)}
+              onClick={(e) => e.stopPropagation()}
+              className="mr-2 mt-1 h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 flex-shrink-0"
+            />
+          )}
+          <div className="flex-grow cursor-pointer min-w-0" onClick={(e) => { e.stopPropagation(); onEditTask(task); }}>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 break-words">{task.name}</h3>
+          </div>
+        </div>
+
+        <div className={`flex-grow cursor-pointer ${onSelectionChange ? 'pl-6' : ''}`} onClick={(e) => { e.stopPropagation(); onEditTask(task); }}>
+          <p className="text-xs text-gray-600 dark:text-gray-300">カテゴリ: {categoryName}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-300">作成日時: {new Date(task.createdAt).toLocaleString()}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-300">期日: {task.dueDate}</p>
+        </div>
       </div>
-      <div className="flex justify-between items-center mt-1">
-        {/* ステータス変更プルダウン */}
+
+      <div className={`flex justify-between items-center mt-auto ${onSelectionChange ? 'pl-6' : ''}`}>
         <div className="relative inline-block text-left" ref={dropdownRef}>
           <button
             type="button"
-            className={`px-2 py-0.5 rounded-md text-xs font-medium transition duration-300 ease-in-out text-white ${getButtonColorClass(task.app_status)}`}
-            onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+            className={`px-2 py-1 rounded-md text-xs font-medium transition duration-300 ease-in-out text-white ${getButtonColorClass(task.app_status)}`}
+            onClick={(e) => { e.stopPropagation(); setIsStatusDropdownOpen(!isStatusDropdownOpen); }}
             aria-haspopup="true"
             aria-expanded={isStatusDropdownOpen}
           >
@@ -150,6 +168,7 @@ export default function TaskItem({ task, onEditTask, onTaskChange, onStatusUpdat
                     role="menuitem"
                     onClick={(e) => {
                       e.preventDefault();
+                      e.stopPropagation();
                       handleStatusChange(key as Task['app_status']);
                     }}
                   >
@@ -163,7 +182,7 @@ export default function TaskItem({ task, onEditTask, onTaskChange, onStatusUpdat
 
         <button
           onClick={(e) => { e.stopPropagation(); handleDelete(); }}
-          className="px-2 py-0.5 bg-red-500 text-white rounded-md hover:bg-red-600 text-xs font-medium transition duration-300 ease-in-out"
+          className="px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 text-xs font-medium transition duration-300 ease-in-out"
         >
           削除
         </button>

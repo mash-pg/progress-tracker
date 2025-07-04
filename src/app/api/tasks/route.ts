@@ -69,10 +69,29 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
+  const body = await request.json().catch(() => null); // ボディの解析を試みる
+
+  // 1. IDリストによる削除
+  if (body && body.ids && Array.isArray(body.ids) && body.ids.length > 0) {
+    const { data, error } = await supabase
+      .from('tasks')
+      .delete()
+      .in('id', body.ids);
+
+    if (error) {
+      console.error('Error deleting tasks by IDs:', error);
+      return NextResponse.json({ message: 'Error deleting tasks by IDs', error: error.message }, { status: 500 });
+    }
+
+    return new NextResponse(null, { status: 204 });
+  }
+
+  // 2. 検索パラメータによる一括削除 (既存のロジック)
   const dueDate = searchParams.get('dueDate');
   const month = searchParams.get('month');
   const categoryId = searchParams.get('categoryId');
   const keyword = searchParams.get('keyword');
+  const status = searchParams.get('status');
 
   let query = supabase.from('tasks').delete();
   let hasWhereClause = false;
@@ -90,7 +109,6 @@ export async function DELETE(request: Request) {
     hasWhereClause = true;
   }
 
-  // categoryId と keyword は AND 条件として適用
   if (categoryId) {
     query = query.eq('categoryId', categoryId);
     hasWhereClause = true;
@@ -99,17 +117,20 @@ export async function DELETE(request: Request) {
     query = query.ilike('name', `%${keyword}%`);
     hasWhereClause = true;
   }
+  if (status) {
+    query = query.eq('app_status', status);
+    hasWhereClause = true;
+  }
 
-  // WHERE句が全くない場合はエラーを返す
   if (!hasWhereClause) {
-    return NextResponse.json({ message: 'DELETE requires a WHERE clause or specific search parameters' }, { status: 400 });
+    return NextResponse.json({ message: 'DELETE requires either a list of IDs in the body or specific search parameters in the URL' }, { status: 400 });
   }
 
   const { error } = await query;
 
   if (error) {
-    console.error('Error deleting tasks:', error);
-    return NextResponse.json({ message: 'Error deleting tasks', error: error.message }, { status: 500 });
+    console.error('Error deleting tasks by search criteria:', error);
+    return NextResponse.json({ message: 'Error deleting tasks by search criteria', error: error.message }, { status: 500 });
   }
 
   return new NextResponse(null, { status: 204 });
