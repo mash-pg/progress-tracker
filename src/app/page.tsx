@@ -129,7 +129,7 @@ export default function Home() {
     );
   };
 
-  // 日付ごとにタスクをグループ化するロジック
+  // 日付ごとにタスクをグループ化し、タスク名をソートするロジック
   const groupedTasks: { [key: string]: Task[] } = useMemo(() => {
     const groups: { [key: string]: Task[] } = {};
     tasks.forEach(task => {
@@ -138,6 +138,39 @@ export default function Home() {
       }
       groups[task.dueDate].push(task);
     });
+
+    // 各日付のタスクをソート
+    for (const date in groups) {
+      groups[date].sort((a, b) => {
+        const convertToHalfWidth = (str: string) => str.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+
+        const aNameHalfWidth = convertToHalfWidth(a.name);
+        const bNameHalfWidth = convertToHalfWidth(b.name);
+
+        const aStartsWithNumber = /^[0-9]/.test(aNameHalfWidth);
+        const bStartsWithNumber = /^[0-9]/.test(bNameHalfWidth);
+
+        if (aStartsWithNumber && bStartsWithNumber) {
+          // 両方数字で始まる場合、数値として比較
+          const numA = parseInt(aNameHalfWidth);
+          const numB = parseInt(bNameHalfWidth);
+          if (numA !== numB) {
+            return numA - numB;
+          }
+          // 数字部分が同じ場合は文字列全体で比較
+          return a.name.localeCompare(b.name);
+        } else if (aStartsWithNumber) {
+          // aだけ数字で始まる場合、aを前に
+          return -1;
+        } else if (bStartsWithNumber) {
+          // bだけ数字で始まる場合、bを前に
+          return 1;
+        } else {
+          // 両方数字で始まらない場合、文字列として比較
+          return a.name.localeCompare(b.name);
+        }
+      });
+    }
     return groups;
   }, [tasks]);
 

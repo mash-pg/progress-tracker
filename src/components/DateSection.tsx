@@ -62,13 +62,38 @@ export default function DateSection({
 
   // ページングされたタスク
   const paginatedTasks = useMemo(() => {
-    // タスクをcreatedAtの降順、次にnameの昇順でソート
     const sortedTasks = [...tasks].sort((a, b) => {
-      const dateComparison = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      if (dateComparison !== 0) {
-        return dateComparison;
+      const convertToHalfWidth = (str: string) => str.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+
+      // nullまたはundefinedの場合のハンドリング
+      const aName = a.name || '';
+      const bName = b.name || '';
+
+      const aNameHalfWidth = convertToHalfWidth(aName);
+      const bNameHalfWidth = convertToHalfWidth(bName);
+
+      const aStartsWithNumber = /^[0-9]/.test(aNameHalfWidth);
+      const bStartsWithNumber = /^[0-9]/.test(bNameHalfWidth);
+
+      if (aStartsWithNumber && bStartsWithNumber) {
+        // 両方数字で始まる場合、数値として比較
+        const numA = parseInt(aNameHalfWidth);
+        const numB = parseInt(bNameHalfWidth);
+        if (numA !== numB) {
+          return numA - numB;
+        }
+        // 数字部分が同じ場合は文字列全体で比較
+        return aName.localeCompare(bName);
+      } else if (aStartsWithNumber) {
+        // aだけ数字で始まる場合、aを前に
+        return -1;
+      } else if (bStartsWithNumber) {
+        // bだけ数字で始まる場合、bを前に
+        return 1;
+      } else {
+        // 両方数字で始まらない場合、文字列として比較
+        return aName.localeCompare(bName);
       }
-      return a.name.localeCompare(b.name);
     });
 
     const startIndex = currentPage * TASKS_PER_PAGE;
