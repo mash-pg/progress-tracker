@@ -8,7 +8,6 @@ export default function HamburgerMenu({ user }: { user: any }) {
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
-    // ローカルストレージからダークモード設定を読み込む
     const savedMode = localStorage.getItem('darkMode');
     if (savedMode === 'true') {
       setDarkMode(true);
@@ -92,6 +91,7 @@ export default function HamburgerMenu({ user }: { user: any }) {
           <nav className="flex flex-col space-y-4 flex-grow">
             {user && (
               <>
+                <p className="text-gray-800 dark:text-gray-100 mb-4">ようこそ、{user.user_metadata.username || user.email}さん</p>
                 <Link href="/" className="text-lg font-medium text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400" onClick={closeMenu}>
                   タスク一覧
                 </Link>
@@ -101,6 +101,9 @@ export default function HamburgerMenu({ user }: { user: any }) {
                 <Link href="/categories" className="text-lg font-medium text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400" onClick={closeMenu}>
                   カテゴリ管理
                 </Link>
+                <form action="/auth/signout" method="post" className="mt-4">
+                  <button type="submit" className="w-full text-left text-lg font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-600" onClick={closeMenu}>ログアウト</button>
+                </form>
               </>
             )}
           </nav>

@@ -52,22 +52,8 @@ export default function NavBar({ user }: { user: any }) {
       <div className="md:hidden">
         <HamburgerMenu user={user} />
       </div>
+      {/* デスクトップ表示時のユーザー情報とダークモード切り替え（左端に移動） */}
       <div className="hidden md:flex items-center">
-        {user && (
-          <>
-            <Link href="/" className="hover:underline text-lg font-medium">
-              タスク一覧
-            </Link>
-            <Link href="/categories" className="hover:underline text-lg font-medium ml-4">
-              カテゴリ管理
-            </Link>
-            <Link href="/search" className="hover:underline text-lg font-medium ml-4">
-              タスク検索
-            </Link>
-          </>
-        )}
-      </div>
-      <div className="flex items-center">
         {user ? (
           <div className="flex items-center">
             <span className="mr-4">{user.user_metadata.username || user.email}</span>
@@ -86,6 +72,22 @@ export default function NavBar({ user }: { user: any }) {
         >
           {darkMode ? 'ライトモード' : 'ダークモード'}
         </button>
+      </div>
+      {/* デスクトップ表示時のナビゲーションリンク（右端に移動） */}
+      <div className="hidden md:flex items-center">
+        {user && (
+          <>
+            <Link href="/" className="hover:underline text-lg font-medium">
+              タスク一覧
+            </Link>
+            <Link href="/categories" className="hover:underline text-lg font-medium ml-4">
+              カテゴリ管理
+            </Link>
+            <Link href="/search" className="hover:underline text-lg font-medium ml-4">
+              タスク検索
+            </Link>
+          </>
+        )}
       </div>
     </nav>
   );
