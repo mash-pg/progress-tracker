@@ -8,6 +8,22 @@ export default function NavBar({ user }: { user: any }) {
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
+    // 開発環境でのみ特定の警告を抑制
+    if (process.env.NODE_ENV === 'development') {
+      const originalError = console.error;
+      console.error = (...args) => {
+        if (typeof args[0] === 'string' && args[0].includes('Support for defaultProps will be removed from memo components')) {
+          return; // この警告は無視する
+        }
+        originalError.apply(console, args);
+      };
+      return () => {
+        console.error = originalError; // クリーンアップ関数で元に戻す
+      };
+    }
+  }, []); // マウント時に一度だけ実行
+
+  useEffect(() => {
     const savedMode = localStorage.getItem('darkMode');
     if (savedMode === 'true') {
       setDarkMode(true);

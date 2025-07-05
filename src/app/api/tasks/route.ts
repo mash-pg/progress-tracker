@@ -176,11 +176,11 @@ export async function PUT(request: Request) {
   const { searchParams } = new URL(request.url);
   const categoryIdParam = searchParams.get('categoryId');
   const keyword = searchParams.get('keyword');
-  const dueDate = searchParams.get('dueDate');
+  const dueDateParam = searchParams.get('dueDate'); // URLパラメータのdueDate
   const statusParam = searchParams.get('status');
 
   const body = await request.json().catch(() => ({}));
-  const { app_status, categoryId: bodyCategoryId, ids } = body;
+  const { app_status, categoryId: bodyCategoryId, ids, dueDate: bodyDueDate } = body; // bodyからdueDateも取得
 
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -189,12 +189,15 @@ export async function PUT(request: Request) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const updateObject: { app_status?: string | null; categoryId?: string | null } = {};
+  const updateObject: { app_status?: string | null; categoryId?: string | null; dueDate?: string | null } = {}; // dueDateを追加
   if (app_status !== undefined) {
     updateObject.app_status = app_status;
   }
   if (bodyCategoryId !== undefined) {
     updateObject.categoryId = bodyCategoryId;
+  }
+  if (bodyDueDate !== undefined) { // bodyDueDateがbodyに含まれていれば更新対象に含める
+    updateObject.dueDate = bodyDueDate;
   }
 
   if (Object.keys(updateObject).length === 0) {
@@ -215,9 +218,9 @@ export async function PUT(request: Request) {
       query = query.ilike('name', `%${keyword}%`);
       hasWhereClause = true;
     }
-    if (dueDate) {
-      const startOfDay = `${dueDate}T00:00:00Z`;
-      const nextDay = new Date(dueDate);
+    if (dueDateParam) {
+      const startOfDay = `${dueDateParam}T00:00:00Z`;
+      const nextDay = new Date(dueDateParam);
       nextDay.setDate(nextDay.getDate() + 1);
       const startOfNextDay = nextDay.toISOString().split('T')[0];
       query = query.gte('dueDate', startOfDay).lt('dueDate', startOfNextDay);

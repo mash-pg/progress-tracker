@@ -36,6 +36,7 @@ export default function SearchPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
+  const [bulkDueDate, setBulkDueDate] = useState<string>(''); // 一括期日更新用の状態
 
   const handleSelectionChange = (taskId: string, isSelected: boolean) => {
     setSelectedTasks(prev =>
@@ -123,6 +124,49 @@ export default function SearchPage() {
     }
   };
 
+  const handleBulkUpdateDueDate = async () => {
+    if (selectedTasks.length === 0) {
+      alert('期日を更新するタスクを選択してください。');
+      return;
+    }
+    if (!bulkDueDate) {
+      alert('新しい期日を選択してください。');
+      return;
+    }
+    if (!confirm(`${selectedTasks.length}件のタスクの期日を「${bulkDueDate}」に更新してもよろしいですか？`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/tasks`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedTasks, dueDate: bulkDueDate }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      // UIを即座に更新
+      setSearchResults(prev =>
+        prev.map(task =>
+          selectedTasks.includes(task.id) ? { ...task, dueDate: bulkDueDate } : task
+        )
+      );
+      setSelectedTasks([]); // 選択をクリア
+      setBulkDueDate(''); // 期日入力フィールドをクリア
+
+    } catch (e: any) {
+      console.error('Failed to bulk update task due dates:', e);
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -162,7 +206,7 @@ export default function SearchPage() {
         params.append('status', selectedStatus);
       }
 
-      const response = await fetch(`/api/tasks?${params.toString()}`); // /api/tasks を使用
+      const response = await fetch(`/api/tasks?${params.toString()}`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -307,6 +351,30 @@ export default function SearchPage() {
             )}
           </div>
         </form>
+
+        {searchResults.length > 0 && (
+          <div className="mb-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+            <h3 className="text-lg font-bold mb-2 text-gray-800 dark:text-gray-100">選択したタスクを一括更新</h3>
+            <div className="flex items-center space-x-2">
+              <label htmlFor="bulkDueDate" className="text-gray-700 dark:text-gray-200">期日:</label>
+              <input
+                type="date"
+                id="bulkDueDate"
+                className="shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-600 dark:text-gray-200 dark:border-gray-500"
+                value={bulkDueDate}
+                onChange={(e) => setBulkDueDate(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={handleBulkUpdateDueDate}
+                disabled={selectedTasks.length === 0 || !bulkDueDate}
+                className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:bg-gray-400 dark:bg-purple-600 dark:hover:bg-purple-700 dark:disabled:bg-gray-500"
+              >
+                期日を一括更新 ({selectedTasks.length})
+              </button>
+            </div>
+          </div>
+        )}
 
         {loading && <p className="text-center text-blue-500 text-lg dark:text-blue-300">検索中...</p>}
         {error && <p className="text-center text-red-500 text-lg dark:text-red-300">エラー: {error}</p>}
