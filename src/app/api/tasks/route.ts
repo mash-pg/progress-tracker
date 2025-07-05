@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server'; // createClientをインポート
 import { v4 as uuidv4 } from 'uuid'; // uuidをインポート
 
 export async function GET(request: Request) {
@@ -8,8 +8,17 @@ export async function GET(request: Request) {
   const month = searchParams.get('month'); // YYYY-MM
   const categoryId = searchParams.get('categoryId');
   const keyword = searchParams.get('keyword');
+  const dueDate = searchParams.get('dueDate'); // dueDateを追加
+  const status = searchParams.get('status'); // statusを追加
 
-  let query = supabase.from('tasks').select('*');
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
+  let query = supabase.from('tasks').select('*').eq('user_id', user.id);
 
   if (month) {
     const [year, mon] = month.split('-');
@@ -19,6 +28,14 @@ export async function GET(request: Request) {
     const endDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
 
     query = query.gte('dueDate', startDate).lt('dueDate', endDate);
+  } else if (dueDate) {
+    // 指定された日付の00:00:00から翌日の00:00:00までの範囲で検索
+    const startOfDay = `${dueDate}T00:00:00Z`;
+    const nextDay = new Date(dueDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    const startOfNextDay = nextDay.toISOString().split('T')[0];
+
+    query = query.gte('dueDate', startOfDay).lt('dueDate', startOfNextDay);
   }
 
   if (categoryId) {
@@ -27,6 +44,10 @@ export async function GET(request: Request) {
 
   if (keyword) {
     query = query.ilike('name', `%${keyword}%`);
+  }
+
+  if (status) {
+    query = query.eq('app_status', status);
   }
 
   const { data: tasks, error } = await query;
@@ -47,11 +68,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Name and dueDate are required' }, { status: 400 });
   }
 
+  const supabase = createClient(); // Supabaseクライアントを初期化
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
   const newId = uuidv4(); // 新しいIDを生成
 
   const { data: newTask, error } = await supabase
     .from('tasks')
-    .insert([{ id: newId, name, "createdAt": new Date().toISOString(), "dueDate": dueDate, "categoryId": categoryId, description, app_status: app_status }])
+    .insert([{ id: newId, name, "createdAt": new Date().toISOString(), "dueDate": dueDate, "categoryId": categoryId, description, app_status: app_status, user_id: user.id }]) // user_idを追加
     .select();
 
   if (error) {
@@ -71,12 +99,20 @@ export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
   const body = await request.json().catch(() => null); // ボディの解析を試みる
 
+  const supabase = createClient(); // Supabaseクライアントを初期化
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
   // 1. IDリストによる削除
   if (body && body.ids && Array.isArray(body.ids) && body.ids.length > 0) {
     const { data, error } = await supabase
       .from('tasks')
       .delete()
-      .in('id', body.ids);
+      .in('id', body.ids)
+      .eq('user_id', user.id); // user_idでフィルタリング
 
     if (error) {
       console.error('Error deleting tasks by IDs:', error);
@@ -93,7 +129,7 @@ export async function DELETE(request: Request) {
   const keyword = searchParams.get('keyword');
   const status = searchParams.get('status');
 
-  let query = supabase.from('tasks').delete();
+  let query = supabase.from('tasks').delete().eq('user_id', user.id); // user_idでフィルタリング
   let hasWhereClause = false;
 
   if (dueDate) {
@@ -138,43 +174,63 @@ export async function DELETE(request: Request) {
 
 export async function PUT(request: Request) {
   const { searchParams } = new URL(request.url);
-  const categoryId = searchParams.get('categoryId');
+  const categoryIdParam = searchParams.get('categoryId');
   const keyword = searchParams.get('keyword');
   const dueDate = searchParams.get('dueDate');
-  const status = searchParams.get('status'); // ここにstatusを追加
-  const body = await request.json();
-  const { app_status } = body;
+  const statusParam = searchParams.get('status');
 
-  if (!app_status) {
-    return NextResponse.json({ message: 'app_status is required' }, { status: 400 });
+  const body = await request.json().catch(() => ({}));
+  const { app_status, categoryId: bodyCategoryId, ids } = body;
+
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  console.log('Received dueDate for PUT:', dueDate); // Add this line for debugging
-
-  let query = supabase.from('tasks').update({ app_status: app_status });
-  let hasWhereClause = false;
-
-  // categoryId, keyword, dueDate, status は AND 条件として適用
-  if (categoryId) {
-    query = query.eq('categoryId', categoryId);
-    hasWhereClause = true;
+  const updateObject: { app_status?: string | null; categoryId?: string | null } = {};
+  if (app_status !== undefined) {
+    updateObject.app_status = app_status;
   }
-  if (keyword) {
-    query = query.ilike('name', `%${keyword}%`);
-    hasWhereClause = true;
-  }
-  if (dueDate) {
-    query = query.eq('dueDate', dueDate);
-    hasWhereClause = true;
-  }
-  if (status) { // ここにstatusの条件を追加
-    query = query.eq('app_status', status);
-    hasWhereClause = true;
+  if (bodyCategoryId !== undefined) {
+    updateObject.categoryId = bodyCategoryId;
   }
 
-  // WHERE句が全くない場合はエラーを返す
-  if (!hasWhereClause) {
-    return NextResponse.json({ message: 'UPDATE requires a WHERE clause or specific search parameters' }, { status: 400 });
+  if (Object.keys(updateObject).length === 0) {
+    return NextResponse.json({ message: 'No valid fields to update provided' }, { status: 400 });
+  }
+
+  let query = supabase.from('tasks').update(updateObject).eq('user_id', user.id);
+
+  if (ids && Array.isArray(ids) && ids.length > 0) {
+    query = query.in('id', ids);
+  } else {
+    let hasWhereClause = false;
+    if (categoryIdParam) {
+      query = query.eq('categoryId', categoryIdParam);
+      hasWhereClause = true;
+    }
+    if (keyword) {
+      query = query.ilike('name', `%${keyword}%`);
+      hasWhereClause = true;
+    }
+    if (dueDate) {
+      const startOfDay = `${dueDate}T00:00:00Z`;
+      const nextDay = new Date(dueDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const startOfNextDay = nextDay.toISOString().split('T')[0];
+      query = query.gte('dueDate', startOfDay).lt('dueDate', startOfNextDay);
+      hasWhereClause = true;
+    }
+    if (statusParam) {
+      query = query.eq('app_status', statusParam);
+      hasWhereClause = true;
+    }
+
+    if (!hasWhereClause) {
+      return NextResponse.json({ message: 'UPDATE requires a list of IDs in the body or specific search parameters in the URL' }, { status: 400 });
+    }
   }
 
   const { error } = await query;

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-export default function HamburgerMenu() {
+export default function HamburgerMenu({ user }: { user: any }) {
   const [isOpen, setIsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
@@ -90,15 +90,19 @@ export default function HamburgerMenu() {
         <div className="p-6 flex flex-col h-full">
           <h2 className="text-2xl font-bold mb-8 text-gray-800 dark:text-gray-100">メニュー</h2>
           <nav className="flex flex-col space-y-4 flex-grow">
-            <Link href="/" className="text-lg font-medium text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400" onClick={closeMenu}>
-              タスク一覧
-            </Link>
-            <Link href="/search" className="text-lg font-medium text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400" onClick={closeMenu}>
-              タスク検索
-            </Link>
-            <Link href="/categories" className="text-lg font-medium text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400" onClick={closeMenu}>
-              カテゴリ管理
-            </Link>
+            {user && (
+              <>
+                <Link href="/" className="text-lg font-medium text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400" onClick={closeMenu}>
+                  タスク一覧
+                </Link>
+                <Link href="/search" className="text-lg font-medium text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400" onClick={closeMenu}>
+                  タスク検索
+                </Link>
+                <Link href="/categories" className="text-lg font-medium text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400" onClick={closeMenu}>
+                  カテゴリ管理
+                </Link>
+              </>
+            )}
           </nav>
           <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button

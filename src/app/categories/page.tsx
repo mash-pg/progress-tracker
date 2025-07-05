@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 import TaskItem from '@/components/TaskItem';
 import Pagination from '@/components/Pagination';
@@ -53,15 +52,18 @@ export default function CategoriesPage() {
     setError(null);
     try {
       const [categoriesRes, tasksRes] = await Promise.all([
-        supabase.from('categories').select('id, name, position').order('position'),
-        supabase.from('tasks').select('id, name, dueDate, categoryId, description, createdAt, app_status')
+        fetch('/api/categories').then(res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.json();
+        }),
+        fetch('/api/tasks').then(res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.json();
+        })
       ]);
 
-      if (categoriesRes.error) throw categoriesRes.error;
-      if (tasksRes.error) throw tasksRes.error;
-
-      setCategories(categoriesRes.data || []);
-      setTasks(tasksRes.data || []);
+      setCategories(categoriesRes || []);
+      setTasks(tasksRes || []);
 
     } catch (err: any) {
       console.error('Error fetching data:', err);
@@ -78,32 +80,33 @@ export default function CategoriesPage() {
       return;
     }
 
-    const newId = uuidv4();
-    const newPosition = categories.length;
+    const response = await fetch('/api/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newCategoryName.trim() }),
+    });
 
-    const { data, error } = await supabase
-      .from('categories')
-      .insert([{ id: newId, name: newCategoryName.trim(), position: newPosition }])
-      .select();
-
-    if (error) {
-      console.error('Error adding category:', error);
-      setError(error.message);
+    if (!response.ok) {
+      const err = await response.json();
+      console.error('Error adding category:', err);
+      setError(err.message);
       alert('カテゴリの追加に失敗しました。');
-    } else if (data) {
+    } else {
       setNewCategoryName('');
       fetchData();
     }
   };
 
   const handleStatusUpdate = async (taskId: string, newAppStatus: Task['app_status']) => {
-    const { error } = await supabase
-      .from('tasks')
-      .update({ app_status: newAppStatus })
-      .eq('id', taskId);
+    const response = await fetch(`/api/tasks/${taskId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ app_status: newAppStatus }),
+    });
 
-    if (error) {
-      console.error('Error updating task status:', error);
+    if (!response.ok) {
+      const err = await response.json();
+      console.error('Error updating task status:', err);
       alert('タスクステータスの更新に失敗しました。');
     } else {
       setTasks(prevTasks =>
@@ -154,17 +157,18 @@ export default function CategoriesPage() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from('categories')
-      .update({ name: editingCategory.name.trim() })
-      .eq('id', editingCategory.id)
-      .select();
+    const response = await fetch(`/api/categories/${editingCategory.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: editingCategory.name.trim() }),
+    });
 
-    if (error) {
-      console.error('Error updating category:', error);
-      setError(error.message);
+    if (!response.ok) {
+      const err = await response.json();
+      console.error('Error updating category:', err);
+      setError(err.message);
       alert('カテゴリの更新に失敗しました。');
-    } else if (data) {
+    } else {
       setEditingCategory(null);
       fetchData();
     }
@@ -175,26 +179,30 @@ export default function CategoriesPage() {
       return;
     }
 
-    const { error: updateError } = await supabase
-      .from('tasks')
-      .update({ categoryId: null })
-      .eq('categoryId', id);
+    // タスクのcategoryIdをnullに更新するAPI呼び出し
+    const updateTasksResponse = await fetch(`/api/tasks?categoryId=${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoryId: null }), // categoryIdをnullに設定
+    });
 
-    if (updateError) {
-      console.error('Error updating tasks categoryId:', updateError);
-      setError(updateError.message);
+    if (!updateTasksResponse.ok) {
+      const err = await updateTasksResponse.json();
+      console.error('Error updating tasks categoryId:', err);
+      setError(err.message);
       alert('カテゴリに紐づくタスクの更新に失敗しました。');
       return;
     }
 
-    const { error } = await supabase
-      .from('categories')
-      .delete()
-      .eq('id', id);
+    // カテゴリを削除するAPI呼び出し
+    const deleteCategoryResponse = await fetch(`/api/categories/${id}`, {
+      method: 'DELETE',
+    });
 
-    if (error) {
-      console.error('Error deleting category:', error);
-      setError(error.message);
+    if (!deleteCategoryResponse.ok) {
+      const err = await deleteCategoryResponse.json();
+      console.error('Error deleting category:', err);
+      setError(err.message);
       alert('カテゴリの削除に失敗しました。');
     } else {
       fetchData();
@@ -217,12 +225,17 @@ export default function CategoriesPage() {
       position: index,
     }));
 
-    const { error } = await supabase.from('categories').upsert(updates);
+    const response = await fetch('/api/categories', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updates }),
+    });
 
-    if (error) {
-      console.error('Error updating category positions:', error);
-    } else {
+    if (response.ok) {
       fetchData();
+    } else {
+      const err = await response.json();
+      console.error('Error updating category positions:', err);
     }
   };
 

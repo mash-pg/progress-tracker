@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/lib/supabase';
-import TaskItem from '@/components/TaskItem'; // TaskItemをインポート
-import Pagination from '@/components/Pagination'; // Paginationをインポート
-import TaskForm from '@/components/TaskForm'; // TaskFormをインポート
+import TaskItem from '@/components/TaskItem';
+import Pagination from '@/components/Pagination';
+import TaskForm from '@/components/TaskForm';
 
 interface Task {
   id: string;
@@ -33,8 +32,8 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const [isFormOpen, setIsFormOpen] = useState(false); // フォームの開閉状態
-  const [editingTask, setEditingTask] = useState<Task | null>(null); // 編集中のタスク
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
 
@@ -97,13 +96,11 @@ export default function SearchPage() {
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/tasks/bulk-update-status`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ids: selectedTasks, app_status: newAppStatus }),
-        }
-      );
+      const response = await fetch(`/api/tasks`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedTasks, app_status: newAppStatus }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -128,14 +125,16 @@ export default function SearchPage() {
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('id, name');
-
-      if (error) {
-        console.error('Error fetching categories:', error);
-      } else {
+      try {
+        const response = await fetch('/api/categories');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
         setCategories(data || []);
+      } catch (e: any) {
+        console.error('Error fetching categories:', e);
+        setError(e.message);
       }
     };
     fetchCategories();
@@ -159,11 +158,11 @@ export default function SearchPage() {
       if (dueDate) {
         params.append('dueDate', dueDate);
       }
-      if (selectedStatus) { // ここにselectedStatusを追加
+      if (selectedStatus) {
         params.append('status', selectedStatus);
       }
 
-      const response = await fetch(`/api/tasks/search?${params.toString()}`);
+      const response = await fetch(`/api/tasks?${params.toString()}`); // /api/tasks を使用
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -190,15 +189,12 @@ export default function SearchPage() {
     setEditingTask(null);
   };
 
-  const handleFormSubmit = async (savedTask: Task) => { // savedTaskを引数として受け取る
-    // searchResultsを直接更新
+  const handleFormSubmit = async (savedTask: Task) => {
     setSearchResults(prevResults => {
       const existingTaskIndex = prevResults.findIndex(t => t.id === savedTask.id);
       if (existingTaskIndex > -1) {
-        // 既存のタスクを更新
         return prevResults.map(t => t.id === savedTask.id ? savedTask : t);
       } else {
-        // 新しいタスクを追加 (検索ページでは通常発生しないが念のため)
         return [...prevResults, savedTask];
       }
     });
@@ -206,12 +202,10 @@ export default function SearchPage() {
   };
 
   const handleTaskChange = () => {
-    // タスクが変更されたら検索結果を再取得
     handleSearch();
   };
 
   const handleStatusUpdate = (taskId: string, newAppStatus: Task['app_status']) => {
-    // 楽観的UI更新
     setSearchResults(prevResults =>
       prevResults.map(task =>
         task.id === taskId ? { ...task, app_status: newAppStatus } : task
@@ -219,7 +213,6 @@ export default function SearchPage() {
     );
   };
 
-  // ページングのための計算
   const paginatedResults = useMemo(() => {
     const startIndex = currentPage * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;

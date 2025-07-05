@@ -1,35 +1,52 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { revalidatePath } from 'next/cache';
+import { createClient } from '@/lib/supabase/server';
 
+// 特定のタスクを取得
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
 
   const { data: task, error } = await supabase
     .from('tasks')
-    .select('*, app_status')
+    .select('*')
     .eq('id', id)
+    .eq('user_id', user.id)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') { // No rows found
-      return NextResponse.json({ message: 'Task not found' }, { status: 404 });
-    }
     console.error('Error fetching task:', error);
     return NextResponse.json({ message: 'Error fetching task', error: error.message }, { status: 500 });
+  }
+
+  if (!task) {
+    return NextResponse.json({ message: 'Task not found' }, { status: 404 });
   }
 
   return NextResponse.json(task);
 }
 
+// 特定のタスクを更新
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
   const body = await request.json();
-  const { name, dueDate, categoryId, description, app_status } = body;
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
 
   const { data: updatedTask, error } = await supabase
     .from('tasks')
-    .update({ name, "dueDate": dueDate, "categoryId": categoryId, description, app_status: app_status })
+    .update(body)
     .eq('id', id)
+    .eq('user_id', user.id)
     .select();
 
   if (error) {
@@ -38,44 +55,36 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 
   if (!updatedTask || updatedTask.length === 0) {
-    const { data: existingTask, error: fetchError } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (fetchError) {
-      console.error('Error fetching existing task after failed update:', fetchError);
-      return NextResponse.json({ message: 'Task not found or error fetching existing task', error: fetchError.message }, { status: 404 });
-    }
-
-    console.warn('PUT /api/tasks/[id] - Task found but no changes applied (values already same) for ID:', id);
-    return NextResponse.json({ ...existingTask, app_status: existingTask.app_status }, { status: 200 });
+    return NextResponse.json({ message: 'Task not found or unauthorized' }, { status: 404 });
   }
 
-  return NextResponse.json({ ...updatedTask[0], app_status: updatedTask[0].app_status });
+  revalidatePath('/'); // トップページを再検証
+  revalidatePath('/search'); // 検索ページを再検証
+  return NextResponse.json(updatedTask[0]);
 }
 
+// 特定のタスクを削除
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  console.log('DELETE /api/tasks/[id] - ID:', id);
-
-  try {
-    const { error } = await supabase
-      .from('tasks')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting task from Supabase:', error);
-      return NextResponse.json({ message: 'Error deleting task', error: error.message }, { status: 500 });
-    }
-
-    console.log('Task deleted successfully from Supabase for ID:', id);
-    return new NextResponse(null, { status: 204 });
-  } catch (err: any) {
-    console.error('Server error during DELETE request:', err);
-    return NextResponse.json({ message: 'Internal Server Error', error: err.message }, { status: 500 });
+  if (!user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
+
+  const { error } = await supabase
+    .from('tasks')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('Error deleting task:', error);
+    return NextResponse.json({ message: 'Error deleting task', error: error.message }, { status: 500 });
+  }
+
+  revalidatePath('/');
+  revalidatePath('/search');
+  return new NextResponse(null, { status: 204 });
 }
