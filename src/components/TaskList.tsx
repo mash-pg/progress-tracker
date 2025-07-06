@@ -142,7 +142,7 @@ export default function TaskList() {
     const taskMap = new Map(tasks.map(t => [t.id, { ...t, subtasks: [] }]));
     const rootTasks: Task[] = [];
 
-    for (const task of taskMap.values()) {
+    for (const task of Array.from(taskMap.values())) {
       if (task.parent_task_id && taskMap.has(task.parent_task_id)) {
         taskMap.get(task.parent_task_id)!.subtasks!.push(task);
       } else {
