@@ -361,6 +361,7 @@ export default function CategoriesPage() {
           onClose={handleFormClose}
           onSubmit={handleFormSubmit}
           categories={categories}
+          tasks={tasks} // tasks propを渡す
         />
       )}
     </div>
