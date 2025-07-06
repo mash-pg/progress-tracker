@@ -139,7 +139,7 @@ export default function TaskList() {
   };
 
   const groupedTasks: { [key: string]: Task[] } = useMemo(() => {
-    const taskMap = new Map(tasks.map(t => [t.id, { ...t, subtasks: [] }]));
+    const taskMap = new Map<string, Task>(tasks.map(t => [t.id, { ...t, subtasks: [] as Task[] }]));
     const rootTasks: Task[] = [];
 
     for (const task of Array.from(taskMap.values())) {
