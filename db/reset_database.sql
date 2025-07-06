@@ -42,7 +42,9 @@ CREATE TABLE public.tasks (
     description text,
     completed boolean DEFAULT false NOT NULL,
     app_status app_status_enum DEFAULT 'todo' NOT NULL,
-    CONSTRAINT tasks_categoryId_fkey FOREIGN KEY ("categoryId") REFERENCES public.categories(id) ON DELETE SET NULL
+    parent_task_id uuid,
+    CONSTRAINT tasks_categoryId_fkey FOREIGN KEY ("categoryId") REFERENCES public.categories(id) ON DELETE SET NULL,
+    CONSTRAINT tasks_parent_task_id_fkey FOREIGN KEY (parent_task_id) REFERENCES public.tasks(id) ON DELETE CASCADE
 );
 
 
