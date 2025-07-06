@@ -10,6 +10,7 @@ export async function GET(request: Request) {
   const keyword = searchParams.get('keyword');
   const dueDate = searchParams.get('dueDate'); // dueDateを追加
   const status = searchParams.get('status'); // statusを追加
+  const isChild = searchParams.get('is_child'); // is_childを追加
 
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -50,6 +51,12 @@ export async function GET(request: Request) {
     query = query.eq('app_status', status);
   }
 
+  if (isChild === 'true') {
+    query = query.not('parent_task_id', 'is', null);
+  } else if (isChild === 'false') {
+    query = query.is('parent_task_id', null);
+  }
+
   const { data: tasks, error } = await query;
 
   if (error) {
@@ -62,7 +69,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { name, dueDate, categoryId, description, app_status } = body;
+  const { name, dueDate, categoryId, description, app_status, parent_task_id } = body;
 
   if (!name || !dueDate) {
     return NextResponse.json({ message: 'Name and dueDate are required' }, { status: 400 });
@@ -79,7 +86,7 @@ export async function POST(request: Request) {
 
   const { data: newTask, error } = await supabase
     .from('tasks')
-    .insert([{ id: newId, name, "createdAt": new Date().toISOString(), "dueDate": dueDate, "categoryId": categoryId, description, app_status: app_status, user_id: user.id }]) // user_idを追加
+    .insert([{ id: newId, name, "createdAt": new Date().toISOString(), "dueDate": dueDate, "categoryId": categoryId, description, app_status: app_status, user_id: user.id, parent_task_id }]) // user_idとparent_task_idを追加
     .select();
 
   if (error) {

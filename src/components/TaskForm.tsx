@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 
 interface Task {
@@ -10,6 +8,7 @@ interface Task {
   dueDate: string;
   categoryId?: string;
   description?: string; // 追加: descriptionプロパティ
+  parent_task_id?: string;
 }
 
 interface Category {
@@ -22,13 +21,15 @@ interface TaskFormProps {
   onClose: () => void;
   onSubmit: (savedTask: Task) => void | Promise<void>; // 変更: Promise<void>を許容
   categories: Category[]; // カテゴリリストを追加
+  tasks: Task[]; // タスクリストを追加
 }
 
-export default function TaskForm({ task, onClose, onSubmit, categories }: TaskFormProps) {
+export default function TaskForm({ task, onClose, onSubmit, categories, tasks }: TaskFormProps) {
   const [name, setName] = useState(task ? task.name : '');
   const [dueDate, setDueDate] = useState(task ? task.dueDate : '');
   const [status, setStatus] = useState<Task['app_status']>(task ? task.app_status : 'todo');
   const [categoryId, setCategoryId] = useState<string | undefined>(task?.categoryId);
+  const [parentTaskId, setParentTaskId] = useState<string | undefined>(task?.parent_task_id);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -37,11 +38,13 @@ export default function TaskForm({ task, onClose, onSubmit, categories }: TaskFo
       setDueDate(task.dueDate);
       setStatus(task.app_status);
       setCategoryId(task.categoryId);
+      setParentTaskId(task.parent_task_id);
     } else {
       // 新規作成時は今日の日付をデフォルトに
       setDueDate(new Date().toISOString().split('T')[0]);
       setStatus('todo'); // 新規作成時はステータスをtodoに設定
       setCategoryId(undefined); // 新規作成時はカテゴリをクリア
+      setParentTaskId(undefined);
     }
   }, [task]);
 
@@ -55,10 +58,19 @@ export default function TaskForm({ task, onClose, onSubmit, categories }: TaskFo
       return;
     }
 
-    const method = task ? 'PUT' : 'POST';
-    const url = task ? `/api/tasks/${task.id}` : '/api/tasks';
+    let method: 'POST' | 'PUT';
+    let url: string;
 
-    console.log('TaskForm: Submitting with method:', method, 'URL:', url, 'Body:', { name, dueDate, status, categoryId });
+    // taskが存在し、かつtask.idが有効なIDである場合にPUT、それ以外はPOST
+    if (task && task.id) {
+      method = 'PUT';
+      url = `/api/tasks/${task.id}`;
+    } else {
+      method = 'POST';
+      url = '/api/tasks';
+    }
+
+    console.log('TaskForm: Submitting with method:', method, 'URL:', url, 'Body:', { name, dueDate, status, categoryId, parent_task_id: parentTaskId });
     console.log('Final method to be used:', method);
 
     try {
@@ -67,7 +79,7 @@ export default function TaskForm({ task, onClose, onSubmit, categories }: TaskFo
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, dueDate, app_status: status, categoryId }),
+        body: JSON.stringify({ name, dueDate, app_status: status, categoryId, parent_task_id: parentTaskId }),
       });
 
       console.log('TaskForm: Response OK:', response.ok, 'Status:', response.status);
@@ -127,6 +139,22 @@ export default function TaskForm({ task, onClose, onSubmit, categories }: TaskFo
               <option value="">-- カテゴリを選択 --</option>
               {categories.map(cat => (
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="mb-4">
+            <label htmlFor="parentTask" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">親タスク:</label>
+            <select
+              id="parentTask"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+              value={parentTaskId || ''}
+              onChange={(e) => setParentTaskId(e.target.value || undefined)}
+              disabled={isSubmitting}
+            >
+              <option value="">-- 親タスクを選択 --</option>
+              <option value="null">親タスクなし</option>
+              {tasks && tasks.filter(t => !t.parent_task_id && (task ? t.id !== task.id : true)).map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
           </div>

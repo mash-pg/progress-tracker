@@ -11,6 +11,8 @@ interface Task {
   createdAt: string;
   dueDate: string;
   categoryId?: string;
+  parent_task_id?: string;
+  subtasks?: Task[];
 }
 
 interface Category {
@@ -29,6 +31,7 @@ interface DateSectionProps {
   onStatusUpdate: (taskId: string, newAppStatus: Task['app_status']) => void; // ステータス変更時の楽観的更新用
   categories: Category[]; // カテゴリリストを追加
   onDeleteTasksByDate: (date: string) => void; // 日付ごとのタスク削除用
+  onAddSubtask: (parentId: string) => void; // 新しいプロパティ
 }
 
 const TASKS_PER_PAGE = 6; // 1ページあたりのタスク数
@@ -44,6 +47,7 @@ export default function DateSection({
   onStatusUpdate,
   categories,
   onDeleteTasksByDate,
+  onAddSubtask, // 新しいプロパティを受け取る
 }: DateSectionProps) {
   const [isExpanded, setIsExpanded] = useState(() => {
     // ローカルストレージから展開状態を読み込む
@@ -103,6 +107,21 @@ export default function DateSection({
 
   const totalTaskPages = Math.ceil(tasks.length / TASKS_PER_PAGE);
 
+  const renderTasks = (tasksToRender: Task[], level = 0) => {
+    return tasksToRender.map(task => (
+      <div key={task.id} style={{ marginLeft: `${level * 20}px` }}>
+        <TaskItem
+          task={task}
+          onEditTask={onEditTask}
+          onTaskChange={onTaskChange}
+          onStatusUpdate={onStatusUpdate}
+          categories={categories}
+        />
+        {task.subtasks && task.subtasks.length > 0 && renderTasks(task.subtasks, level + 1)}
+      </div>
+    ));
+  };
+
   return (
     <div className="date-section mb-3 p-3 border border-gray-200 rounded-lg shadow-sm bg-white dark:bg-gray-700 dark:border-gray-600">
       <div
@@ -136,6 +155,7 @@ export default function DateSection({
                 onTaskChange={onTaskChange}
                 onStatusUpdate={onStatusUpdate}
                 categories={categories}
+                onAddSubtask={onAddSubtask}
               />
             ))}
           </div>

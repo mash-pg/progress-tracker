@@ -13,6 +13,7 @@ interface Task {
   dueDate: string;
   categoryId?: string;
   description?: string;
+  parent_task_id?: string;
 }
 
 interface Category {
@@ -28,6 +29,7 @@ export default function SearchPage() {
   const [keyword, setKeyword] = useState('');
   const [dueDate, setDueDate] = useState<string | undefined>(undefined);
   const [selectedStatus, setSelectedStatus] = useState<Task['app_status'] | undefined>(undefined);
+  const [taskTypeFilter, setTaskTypeFilter] = useState<string | undefined>(undefined); // 'parent', 'child', undefined
   const [searchResults, setSearchResults] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -181,6 +183,7 @@ export default function SearchPage() {
         setError(e.message);
       }
     };
+
     fetchCategories();
   }, []);
 
@@ -204,6 +207,11 @@ export default function SearchPage() {
       }
       if (selectedStatus) {
         params.append('status', selectedStatus);
+      }
+      if (taskTypeFilter === 'parent') {
+        params.append('is_child', 'false');
+      } else if (taskTypeFilter === 'child') {
+        params.append('is_child', 'true');
       }
 
       const response = await fetch(`/api/tasks?${params.toString()}`);
@@ -320,6 +328,19 @@ export default function SearchPage() {
               <option value="completed">完了</option>
             </select>
           </div>
+          <div className="mb-4">
+            <label htmlFor="taskTypeFilter" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">タスクタイプで絞り込み:</label>
+            <select
+              id="taskTypeFilter"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+              value={taskTypeFilter || ''}
+              onChange={(e) => setTaskTypeFilter(e.target.value || undefined)}
+            >
+              <option value="">全て</option>
+              <option value="parent">親タスクのみ</option>
+              <option value="child">子タスクのみ</option>
+            </select>
+          </div>
           <div className="flex space-x-2">
             <button
               type="submit"
@@ -420,11 +441,11 @@ export default function SearchPage() {
           </>
         )}
 
-        {!loading && !error && searchResults.length === 0 && (keyword || selectedCategory) && (
+        {!loading && !error && searchResults.length === 0 && (keyword || selectedCategory || taskTypeFilter) && (
           <p className="text-center text-gray-500 text-lg dark:text-gray-400">検索条件に一致するタスクは見つかりませんでした。</p>
         )}
 
-        {!loading && !error && searchResults.length === 0 && !keyword && !selectedCategory && (
+        {!loading && !error && searchResults.length === 0 && !keyword && !selectedCategory && !taskTypeFilter && (
           <p className="text-center text-gray-500 text-lg dark:text-gray-400">検索条件を入力してタスクを検索してください。</p>
         )}
 
@@ -434,6 +455,7 @@ export default function SearchPage() {
             onClose={handleFormClose}
             onSubmit={handleFormSubmit}
             categories={categories}
+            tasks={[]} // tasks prop is no longer needed here
           />
         )}
       </div>

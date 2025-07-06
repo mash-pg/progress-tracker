@@ -14,6 +14,8 @@ interface Task {
   createdAt: string;
   dueDate: string;
   categoryId?: string;
+  parent_task_id?: string;
+  subtasks?: Task[];
 }
 
 interface Category {
@@ -94,6 +96,18 @@ export default function TaskList() {
     setIsFormOpen(true);
   };
 
+  const handleAddSubtask = (parentId: string) => {
+    setEditingTask({
+      id: '',
+      name: '',
+      app_status: 'todo',
+      createdAt: new Date().toISOString(),
+      dueDate: new Date().toISOString().split('T')[0],
+      parent_task_id: parentId,
+    });
+    setIsFormOpen(true);
+  };
+
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
     setIsFormOpen(true);
@@ -125,8 +139,19 @@ export default function TaskList() {
   };
 
   const groupedTasks: { [key: string]: Task[] } = useMemo(() => {
+    const taskMap = new Map(tasks.map(t => [t.id, { ...t, subtasks: [] }]));
+    const rootTasks: Task[] = [];
+
+    for (const task of taskMap.values()) {
+      if (task.parent_task_id && taskMap.has(task.parent_task_id)) {
+        taskMap.get(task.parent_task_id)!.subtasks!.push(task);
+      } else {
+        rootTasks.push(task);
+      }
+    }
+
     const groups: { [key: string]: Task[] } = {};
-    tasks.forEach(task => {
+    rootTasks.forEach(task => {
       if (!groups[task.dueDate]) {
         groups[task.dueDate] = [];
       }
@@ -249,6 +274,7 @@ export default function TaskList() {
                     onStatusUpdate={handleStatusUpdate}
                     onDeleteTasksByDate={handleDeleteTasksByDate}
                     categories={categories}
+                    onAddSubtask={handleAddSubtask}
                   />
                 );
               })
@@ -274,6 +300,7 @@ export default function TaskList() {
             onClose={handleFormClose}
             onSubmit={handleFormSubmit}
             categories={categories}
+            tasks={tasks}
           />
         )}
       </div>

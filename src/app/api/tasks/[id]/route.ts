@@ -42,6 +42,11 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
+  // parent_task_idが'null'文字列の場合、実際のnullに変換
+  if (body.parent_task_id === 'null') {
+    body.parent_task_id = null;
+  }
+
   const { data: updatedTask, error } = await supabase
     .from('tasks')
     .update(body)
