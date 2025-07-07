@@ -362,6 +362,7 @@ export default function CategoriesPage() {
           onSubmit={handleFormSubmit}
           categories={categories}
           tasks={tasks} // tasks propを渡す
+          isOpen={isFormOpen}
         />
       )}
     </div>

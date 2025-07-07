@@ -6,6 +6,7 @@ import AddTaskButton from '@/components/AddTaskButton';
 import DateSection from '@/components/DateSection';
 import TaskForm from '@/components/TaskForm';
 import Pagination from '@/components/Pagination';
+import { Button } from '@/components/ui/button';
 
 interface Task {
   id: string;
@@ -244,12 +245,12 @@ export default function TaskList() {
 
         <div className="flex justify-center mb-4 space-x-2">
           <AddTaskButton onAddTask={handleAddTask} />
-          <button
+          <Button
             onClick={handleDeleteTasksByMonth}
-            className="inline-block py-3 sm:py-4 px-6 sm:px-8 bg-red-500 text-white rounded-full hover:bg-red-700 text-lg sm:text-xl font-bold shadow-lg transition duration-300 ease-in-out transform hover:scale-105"
+            variant="destructive"
           >
             この月のタスクを削除
-          </button>
+          </Button>
         </div>
 
         {loading && <p className="text-center text-blue-500 text-lg dark:text-blue-300">タスクを読み込み中...</p>}
@@ -284,16 +285,6 @@ export default function TaskList() {
           </div>
         )}
 
-        {totalPages > 1 && (
-          <div className="col-span-full">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
-          </div>
-        )}
-
         {isFormOpen && (
           <TaskForm
             task={editingTask}
@@ -301,6 +292,7 @@ export default function TaskList() {
             onSubmit={handleFormSubmit}
             categories={categories}
             tasks={tasks}
+            isOpen={isFormOpen}
           />
         )}
       </div>

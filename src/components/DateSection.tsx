@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import TaskItem from './TaskItem';
 import Pagination from './Pagination'; // Paginationをインポート
+import { Button } from '@/components/ui/button';
+import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 
 interface Task {
   id: string;
@@ -58,6 +60,13 @@ export default function DateSection({
     return false; // デフォルトは閉じた状態
   });
   const [currentPage, setCurrentPage] = useState(0); // 現在のタスクページ
+
+  useEffect(() => {
+    // ローカルストレージに展開状態を保存
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`dateSectionExpanded-${date}`, String(isExpanded));
+    }
+  }, [isExpanded, date]);
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
@@ -131,13 +140,22 @@ export default function DateSection({
         <div className="flex justify-between items-center w-full mb-0.5">
           <span className="text-lg font-bold text-blue-700 dark:text-blue-300">{date}</span>
           <div className="flex items-center">
-            <button
+            <Button
+              variant="destructive"
+              size="sm"
               onClick={(e) => { e.stopPropagation(); onDeleteTasksByDate(date); }}
-              className="ml-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-1 px-2 rounded"
+              className="ml-2"
             >
-              削除
-            </button>
-            <span className="text-gray-500 text-base ml-2 dark:text-gray-400">{isExpanded ? '▲' : '▼'}</span>
+              <Trash2 className="h-4 w-4 mr-1" /> 削除
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleExpanded}
+              className="ml-2"
+            >
+              {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            </Button>
           </div>
         </div>
         <span className="progress-rate text-gray-700 text-sm font-medium dark:text-gray-300">

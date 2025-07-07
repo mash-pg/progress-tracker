@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Button } from '@/components/ui/button';
 
 interface PaginationProps {
   currentPage: number;
@@ -49,35 +50,38 @@ const Pagination: React.FC<PaginationProps> = ({
   const pageNumbers = getPageNumbers();
 
   return (
-    <div className="flex justify-center mt-3 space-x-1 text-xs"> {/* ここを修正 */}
-      <button
+    <div className="flex justify-center mt-3 space-x-1 text-xs">
+      <Button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 0}
-        className="px-2 py-1 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+        variant="outline"
+        size="sm"
       >
         前へ
-      </button>
+      </Button>
       {pageNumbers.map((page, index) => (
         <React.Fragment key={index}>
           {typeof page === 'number' ? (
-            <button
+            <Button
               onClick={() => onPageChange(page)}
-              className={`px-2 py-1 rounded-md ${currentPage === page ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500'}`}
+              variant={currentPage === page ? 'default' : 'outline'}
+              size="sm"
             >
               {page + 1}
-            </button>
+            </Button>
           ) : (
             <span className="px-2 py-1 text-gray-700 dark:text-gray-300">{page}</span>
           )}
         </React.Fragment>
       ))}
-      <button
+      <Button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages - 1}
-        className="px-2 py-1 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+        variant="outline"
+        size="sm"
       >
         次へ
-      </button>
+      </Button>
     </div>
   );
 };

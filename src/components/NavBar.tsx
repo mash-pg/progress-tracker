@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import HamburgerMenu from '@/components/HamburgerMenu';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Menu } from 'lucide-react'; // ハンバーガーアイコン
 
 export default function NavBar({ user }: { user: any }) {
   const [darkMode, setDarkMode] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   useEffect(() => {
     // 開発環境でのみ特定の警告を抑制
@@ -49,16 +52,60 @@ export default function NavBar({ user }: { user: any }) {
 
   return (
     <nav className="bg-blue-700 p-4 text-white flex justify-between items-center dark:bg-blue-900">
+      {/* モバイル表示時のハンバーガーメニュー */}
       <div className="md:hidden">
-        <HamburgerMenu user={user} />
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-white">
+              <Menu className="h-6 w-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-64 bg-white dark:bg-gray-900">
+            <div className="p-6 flex flex-col h-full">
+              <h2 className="text-2xl font-bold mb-8 text-gray-800 dark:text-gray-100">メニュー</h2>
+              <nav className="flex flex-col space-y-4 flex-grow">
+                {user ? (
+                  <>
+                    <p className="text-gray-800 dark:text-gray-100 mb-4">ようこそ、{user.user_metadata.username || user.email}さん</p>
+                    <Link href="/" className="text-lg font-medium text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400" onClick={() => setIsSheetOpen(false)}>
+                      タスク一覧
+                    </Link>
+                    <Link href="/search" className="text-lg font-medium text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400" onClick={() => setIsSheetOpen(false)}>
+                      タスク検索
+                    </Link>
+                    <Link href="/categories" className="text-lg font-medium text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400" onClick={() => setIsSheetOpen(false)}>
+                      カテゴリ管理
+                    </Link>
+                    <form action="/auth/signout" method="post" className="mt-4">
+                      <Button type="submit" variant="ghost" className="w-full justify-start text-lg font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-600" onClick={() => setIsSheetOpen(false)}>ログアウト</Button>
+                    </form>
+                  </>
+                ) : (
+                  <Link href="/login" className="text-lg font-medium text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400" onClick={() => setIsSheetOpen(false)}>
+                    ログイン
+                  </Link>
+                )}
+              </nav>
+              <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <Button
+                  onClick={toggleDarkMode}
+                  className="w-full"
+                >
+                  {darkMode ? 'ライトモード' : 'ダークモード'}
+                </Button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
+
       {/* デスクトップ表示時のユーザー情報とダークモード切り替え（左端に移動） */}
       <div className="hidden md:flex items-center">
         {user ? (
           <div className="flex items-center">
             <span className="mr-4">{user.user_metadata.username || user.email}</span>
             <form action="/auth/signout" method="post">
-              <button type="submit" className="hover:underline">ログアウト</button>
+              <Button type="submit" variant="link" className="text-white hover:no-underline">ログアウト</Button>
             </form>
           </div>
         ) : (
@@ -66,12 +113,13 @@ export default function NavBar({ user }: { user: any }) {
             ログイン
           </Link>
         )}
-        <button
+        <Button
           onClick={toggleDarkMode}
-          className="ml-6 p-2 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 shadow-md"
+          variant="outline"
+          className="ml-6 bg-white text-black"
         >
           {darkMode ? 'ライトモード' : 'ダークモード'}
-        </button>
+        </Button>
       </div>
       {/* デスクトップ表示時のナビゲーションリンク（右端に移動） */}
       <div className="hidden md:flex items-center">

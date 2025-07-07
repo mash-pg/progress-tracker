@@ -64,11 +64,11 @@ export default function CategorySection({
   return (
     <div className="border border-gray-200 rounded-lg shadow-sm bg-white dark:bg-gray-700 dark:border-gray-600 p-4">
       <div
-        className="flex justify-between items-center mb-4 pb-2 border-b border-gray-300 dark:border-gray-600 cursor-pointer"
+        className="flex justify-between items-center mb-4 pb-2 border-b border-gray-300 dark:border-gray-600 cursor-pointer flex-wrap"
         onClick={toggleExpanded}
       >
         <span className="text-xl font-bold text-gray-800 dark:text-gray-100">{category.name} ({tasks.length})</span>
-        <div className="space-x-2 flex items-center">
+        <div className="space-x-2 flex items-center flex-shrink-0">
           <button
             onClick={(e) => { e.stopPropagation(); onEditCategory(category); }}
             className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition duration-300 dark:bg-yellow-600 dark:hover:bg-yellow-700 text-sm"
@@ -86,7 +86,7 @@ export default function CategorySection({
       </div>
       <div className={`task-list-content transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-screen opacity-100 pt-3' : 'max-h-0 opacity-0 overflow-hidden'}`}>
         {sortedTasks.length > 0 ? (
-          <div className="grid grid-cols-1 gap-2">
+          <div className="flex flex-col gap-2">
             {paginatedTasks.map(task => (
               <TaskItem
                 key={task.id}

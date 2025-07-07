@@ -1,4 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Task {
   id: string;
@@ -22,9 +27,10 @@ interface TaskFormProps {
   onSubmit: (savedTask: Task) => void | Promise<void>; // 変更: Promise<void>を許容
   categories: Category[]; // カテゴリリストを追加
   tasks: Task[]; // タスクリストを追加
+  isOpen: boolean; // Dialogの開閉状態を制御するためのプロパティ
 }
 
-export default function TaskForm({ task, onClose, onSubmit, categories, tasks }: TaskFormProps) {
+export default function TaskForm({ task, onClose, onSubmit, categories, tasks, isOpen }: TaskFormProps) {
   const [name, setName] = useState(task ? task.name : '');
   const [dueDate, setDueDate] = useState(task ? task.dueDate : '');
   const [status, setStatus] = useState<Task['app_status']>(task ? task.app_status : 'todo');
@@ -99,100 +105,111 @@ export default function TaskForm({ task, onClose, onSubmit, categories, tasks }:
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md dark:bg-gray-800 task-form-modal">
-        <h2 className="text-2xl font-bold mb-6 text-center">{task ? 'タスクを編集' : '新しいタスクを追加'}</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="name" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">タスク名:</label>
-            <input
-              type="text"
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>{task ? 'タスクを編集' : '新しいタスクを追加'}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="name" className="text-right">
+              タスク名:
+            </Label>
+            <Input
               id="name"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
               disabled={isSubmitting}
+              className="col-span-3"
             />
           </div>
-          <div className="mb-4">
-            <label htmlFor="dueDate" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">期日:</label>
-            <input
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="dueDate" className="text-right">
+              期日:
+            </Label>
+            <Input
               type="date"
               id="dueDate"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
               required
               disabled={isSubmitting}
+              className="col-span-3"
             />
           </div>
-          <div className="mb-4">
-            <label htmlFor="category" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">カテゴリ:</label>
-            <select
-              id="category"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-              value={categoryId || ''} // undefinedの場合は空文字列
-              onChange={(e) => setCategoryId(e.target.value || undefined)}
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="category" className="text-right">
+              カテゴリ:
+            </Label>
+            <Select
+              value={categoryId || ''}
+              onValueChange={(value) => setCategoryId(value || undefined)}
               disabled={isSubmitting}
             >
-              <option value="">-- カテゴリを選択 --</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
-              ))}
-            </select>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="-- カテゴリを選択 --" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">-- カテゴリを選択 --</SelectItem>
+                {categories.map(cat => (
+                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div className="mb-4">
-            <label htmlFor="parentTask" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">親タスク:</label>
-            <select
-              id="parentTask"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="parentTask" className="text-right">
+              親タスク:
+            </Label>
+            <Select
               value={parentTaskId || ''}
-              onChange={(e) => setParentTaskId(e.target.value || undefined)}
+              onValueChange={(value) => setParentTaskId(value || undefined)}
               disabled={isSubmitting}
             >
-              <option value="">-- 親タスクを選択 --</option>
-              <option value="null">親タスクなし</option>
-              {tasks && tasks.filter(t => !t.parent_task_id && (task ? t.id !== task.id : true)).map(t => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="-- 親タスクを選択 --" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">-- 親タスクを選択 --</SelectItem>
+                <SelectItem value="null">親タスクなし</SelectItem>
+                {tasks && tasks.filter(t => !t.parent_task_id && (task ? t.id !== task.id : true)).map(t => (
+                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           {task && (
-            <div className="mb-6">
-              <label htmlFor="status" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">ステータス:</label>
-              <select
-                id="status"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="status" className="text-right">
+                ステータス:
+              </Label>
+              <Select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as Task['app_status'])}
+                onValueChange={(value) => setStatus(value as Task['app_status'])}
                 disabled={isSubmitting}
               >
-                <option value="todo">未着手</option>
-                <option value="in-progress">作業中</option>
-                <option value="completed">完了</option>
-              </select>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="ステータスを選択" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todo">未着手</SelectItem>
+                  <SelectItem value="in-progress">作業中</SelectItem>
+                  <SelectItem value="completed">完了</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           )}
-          <div className="flex items-center justify-between">
-            <button
-              type="submit"
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline dark:bg-blue-600 dark:hover:bg-blue-700"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? '保存中...' : '保存'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline dark:bg-gray-600 dark:hover:bg-gray-700"
-              disabled={isSubmitting}
-            >
+          <div className="flex justify-end gap-2 mt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               キャンセル
-            </button>
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? '保存中...' : '保存'}
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

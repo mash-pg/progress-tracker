@@ -1,6 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ChevronDown, ChevronRight, Edit, Trash2, PlusCircle } from 'lucide-react';
 
 interface Task {
   id: string;
@@ -42,12 +46,9 @@ export default function TaskItem({
   isSubtask = false, // デフォルトはfalse
   onAddSubtask, // 新しいプロパティを受け取る
 }: TaskItemProps) {
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [subtasksVisible, setSubtasksVisible] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleStatusChange = async (newAppStatus: Task['app_status']) => {
-    setIsStatusDropdownOpen(false);
     if (newAppStatus === task.app_status) return;
     onStatusUpdate(task.id, newAppStatus);
     try {
@@ -83,24 +84,18 @@ export default function TaskItem({
     'completed': '完了',
   };
 
-  const getButtonColorClass = (app_status: Task['app_status']) => {
+  const getStatusVariant = (app_status: Task['app_status']) => {
     switch (app_status) {
-      case 'completed': return 'bg-green-500 hover:bg-green-600';
-      case 'in-progress': return 'bg-yellow-500 hover:bg-yellow-600';
-      case 'todo': return 'bg-red-500 hover:bg-red-600';
-      default: return 'bg-gray-500 hover:bg-gray-600';
+      case 'completed':
+        return 'bg-blue-500 hover:bg-blue-600 text-white';
+      case 'in-progress':
+        return 'bg-yellow-500 hover:bg-yellow-600 text-white';
+      case 'todo':
+        return 'bg-red-500 hover:bg-red-600 text-white';
+      default:
+        return 'bg-gray-500 hover:bg-gray-600 text-white';
     }
   };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsStatusDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [dropdownRef]);
 
   const categoryName = task.categoryId && categories.find(cat => cat.id === task.categoryId)?.name || '未分類';
 
@@ -111,22 +106,22 @@ export default function TaskItem({
           <div className="flex items-center mb-1">
             {/* サブタスクの表示/非表示切り替えボタン */}
             {task.subtasks && task.subtasks.length > 0 && (
-              <button 
-                onClick={(e) => { e.stopPropagation(); setSubtasksVisible(!subtasksVisible); }} 
-                className="mr-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                aria-expanded={subtasksVisible}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => { e.stopPropagation(); setSubtasksVisible(!subtasksVisible); }}
+                className="mr-2"
               >
-                {subtasksVisible ? '▼' : '▶'}
-              </button>
+                {subtasksVisible ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </Button>
             )}
             {/* チェックボックスは親タスクのみに表示 */}
             {onSelectionChange && !isSubtask && (
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={isSelected}
-                onChange={(e) => onSelectionChange(task.id, e.target.checked)}
+                onCheckedChange={(checked) => onSelectionChange(task.id, checked as boolean)}
                 onClick={(e) => e.stopPropagation()}
-                className="mr-2 mt-1 h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 flex-shrink-0"
+                className="mr-2 mt-1"
               />
             )}
             <div className="flex-grow cursor-pointer min-w-0" onClick={(e) => { e.stopPropagation(); onEditTask(task); }}>
@@ -144,49 +139,46 @@ export default function TaskItem({
           )}
         </div>
 
-        <div className={`flex justify-between items-center mt-auto ${isSubtask ? 'pl-4' : (onSelectionChange ? 'pl-10' : 'pl-4')}`}>
-          <div className="relative inline-block text-left" ref={dropdownRef}>
-            <button
-              type="button"
-              className={`px-2 py-1 rounded-md text-xs font-medium transition duration-300 ease-in-out text-white ${getButtonColorClass(task.app_status)}`}
-              onClick={(e) => { e.stopPropagation(); setIsStatusDropdownOpen(!isStatusDropdownOpen); }}
-              aria-haspopup="true"
-              aria-expanded={isStatusDropdownOpen}
+        <div className={`flex flex-wrap items-center justify-start gap-2 mt-auto ${isSubtask ? 'pl-4' : (onSelectionChange ? 'pl-10' : 'pl-4')}`}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="default" className={getStatusVariant(task.app_status)} size="sm">
+                {statusMap[task.app_status]} <ChevronDown className="ml-1 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {Object.entries(statusMap).map(([key, value]) => (
+                <DropdownMenuItem key={key} onClick={() => handleStatusChange(key as Task['app_status'])}>
+                  {value}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <div className="flex items-center space-x-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); onEditTask(task); }}
             >
-              {statusMap[task.app_status]} ▼
-            </button>
-            {isStatusDropdownOpen && (
-              <div className="origin-top-left absolute left-0 bottom-full mb-1 w-28 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10 dark:bg-gray-700 dark:ring-gray-600" role="menu">
-                <div className="py-0.5" role="none">
-                  {Object.entries(statusMap).map(([key, value]) => (
-                    <a
-                      key={key}
-                      href="#"
-                      className={`block px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 ${task.app_status === key ? 'bg-gray-100 font-semibold dark:bg-gray-600' : ''}`}
-                      role="menuitem"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleStatusChange(key as Task['app_status']); }}
-                    >
-                      {value}
-                    </a>
-                  ))}
-                </div>
-              </div>
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); handleDelete(); }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            {!isSubtask && onAddSubtask && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); onAddSubtask(task.id); }}
+              >
+                <PlusCircle className="h-4 w-4" />
+              </Button>
             )}
           </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); handleDelete(); }}
-            className="px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 text-xs font-medium transition duration-300 ease-in-out"
-          >
-            削除
-          </button>
-          {!isSubtask && onAddSubtask && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onAddSubtask(task.id); }}
-              className="ml-2 px-2 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-xs font-medium transition duration-300 ease-in-out"
-            >
-              子タスク追加
-            </button>
-          )}
         </div>
       </div>
       {/* サブタスクの再帰的なレンダリング */}

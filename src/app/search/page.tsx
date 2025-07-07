@@ -456,6 +456,7 @@ export default function SearchPage() {
             onSubmit={handleFormSubmit}
             categories={categories}
             tasks={[]} // tasks prop is no longer needed here
+            isOpen={isFormOpen}
           />
         )}
       </div>
