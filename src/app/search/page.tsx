@@ -3,6 +3,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import TaskItem from '@/components/TaskItem';
 import Pagination from '@/components/Pagination';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Search, Filter } from 'lucide-react';
 import TaskForm from '@/components/TaskForm';
 
 interface Task {
@@ -35,6 +38,7 @@ export default function SearchPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
@@ -193,6 +197,7 @@ export default function SearchPage() {
     setError(null);
     setSearchResults([]);
     setCurrentPage(0); // 検索時にページをリセット
+    setIsSearchModalOpen(false); // Close modal on search
 
     try {
       const params = new URLSearchParams();
@@ -278,100 +283,87 @@ export default function SearchPage() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-full sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-5xl bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8 dark:bg-gray-800">
         <h1 className="text-center text-4xl font-extrabold text-gray-800 mb-8 dark:text-gray-100">タスク検索</h1>
 
-        <form onSubmit={handleSearch} className="mb-8">
-          <div className="mb-4">
-            <label htmlFor="categoryFilter" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">カテゴリで絞り込み:</label>
-            <select
-              id="categoryFilter"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-              value={selectedCategory || ''}
-              onChange={(e) => setSelectedCategory(e.target.value || undefined)}
-            >
-              <option value="">全カテゴリ</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="mb-4">
-            <label htmlFor="keywordSearch" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">キーワード:</label>
-            <input
-              type="text"
-              id="keywordSearch"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-              placeholder="タスク名で検索"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-            />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="dueDateSearch" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">期日:</label>
-            <input
-              type="date"
-              id="dueDateSearch"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-              value={dueDate || ''}
-              onChange={(e) => setDueDate(e.target.value || undefined)}
-            />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="statusFilter" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">ステータスで絞り込み:</label>
-            <select
-              id="statusFilter"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-              value={selectedStatus || ''}
-              onChange={(e) => setSelectedStatus(e.target.value as Task['app_status'] || undefined)}
-            >
-              <option value="">全ステータス</option>
-              <option value="todo">未着手</option>
-              <option value="in-progress">作業中</option>
-              <option value="completed">完了</option>
-            </select>
-          </div>
-          <div className="mb-4">
-            <label htmlFor="taskTypeFilter" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">タスクタイプで絞り込み:</label>
-            <select
-              id="taskTypeFilter"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-              value={taskTypeFilter || ''}
-              onChange={(e) => setTaskTypeFilter(e.target.value || undefined)}
-            >
-              <option value="">全て</option>
-              <option value="parent">親タスクのみ</option>
-              <option value="child">子タスクのみ</option>
-            </select>
-          </div>
-          <div className="flex space-x-2">
-            <button
-              type="submit"
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline dark:bg-blue-600 dark:hover:bg-blue-700"
-            >
-              検索
-            </button>
-            {searchResults.length > 0 && (
-              <div className="flex items-center space-x-2">
-                <select
-                  onChange={(e) => handleBulkUpdateStatus(e.target.value as Task['app_status'])}
-                  className="shadow appearance-none border rounded py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 font-bold"
-                  defaultValue=""
-                >
-                  <option value="" disabled>一括ステータス更新</option>
-                  <option value="todo">未着手</option>
-                  <option value="in-progress">作業中</option>
-                  <option value="completed">完了</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={handleBulkDeleteSelected}
-                  disabled={selectedTasks.length === 0}
-                  className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:bg-gray-400 dark:bg-red-600 dark:hover:bg-red-700 dark:disabled:bg-gray-500"
-                >
-                  選択したタスクを削除 ({selectedTasks.length})
-                </button>
-              </div>
-            )}
-          </div>
-        </form>
+        <div className="flex items-center space-x-2 mb-8">
+          <input
+            type="text"
+            id="keywordSearch"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+            placeholder="タスク名で検索"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+          />
+          <Button type="submit" onClick={handleSearch}>
+            <Search className="mr-2 h-4 w-4" />検索
+          </Button>
+          <Dialog open={isSearchModalOpen} onOpenChange={setIsSearchModalOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline dark:bg-gray-600 dark:hover:bg-gray-700">
+                詳細検索
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>詳細検索</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSearch} className="mt-4">
+                <div className="mb-4">
+                  <label htmlFor="categoryFilter" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">カテゴリで絞り込み:</label>
+                  <select
+                    id="categoryFilter"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                    value={selectedCategory || ''}
+                    onChange={(e) => setSelectedCategory(e.target.value || undefined)}
+                  >
+                    <option value="">全カテゴリ</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="dueDateSearch" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">期日:</label>
+                  <input
+                    type="date"
+                    id="dueDateSearch"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                    value={dueDate || ''}
+                    onChange={(e) => setDueDate(e.target.value || undefined)}
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="statusFilter" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">ステータスで絞り込み:</label>
+                  <select
+                    id="statusFilter"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                    value={selectedStatus || ''}
+                    onChange={(e) => setSelectedStatus(e.target.value as Task['app_status'] || undefined)}
+                  >
+                    <option value="">全ステータス</option>
+                    <option value="todo">未着手</option>
+                    <option value="in-progress">作業中</option>
+                    <option value="completed">完了</option>
+                  </select>
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="taskTypeFilter" className="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-200">タスクタイプで絞り込み:</label>
+                  <select
+                    id="taskTypeFilter"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                    value={taskTypeFilter || ''}
+                    onChange={(e) => setTaskTypeFilter(e.target.value || undefined)}
+                  >
+                    <option value="">全て</option>
+                    <option value="parent">親タスクのみ</option>
+                    <option value="child">子タスクのみ</option>
+                  </select>
+                </div>
+                <Button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline dark:bg-blue-600 dark:hover:bg-blue-700">
+                  検索
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         {searchResults.length > 0 && (
           <div className="mb-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
