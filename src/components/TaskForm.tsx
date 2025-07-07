@@ -151,7 +151,7 @@ export default function TaskForm({ task, onClose, onSubmit, categories, tasks, i
                 <SelectValue placeholder="-- カテゴリを選択 --" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">-- カテゴリを選択 --</SelectItem>
+                <SelectItem>-- カテゴリを選択 --</SelectItem>
                 {categories.map(cat => (
                   <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                 ))}
@@ -171,7 +171,7 @@ export default function TaskForm({ task, onClose, onSubmit, categories, tasks, i
                 <SelectValue placeholder="-- 親タスクを選択 --" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">-- 親タスクを選択 --</SelectItem>
+                <SelectItem>-- 親タスクを選択 --</SelectItem>
                 <SelectItem value="null">親タスクなし</SelectItem>
                 {tasks && tasks.filter(t => !t.parent_task_id && (task ? t.id !== task.id : true)).map(t => (
                   <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
