@@ -144,14 +144,14 @@ export default function TaskForm({ task, onClose, onSubmit, categories, tasks, i
             </Label>
             <Select
               value={categoryId || ''}
-              onValueChange={(value) => setCategoryId(value || undefined)}
+              onValueChange={(value) => setCategoryId(value === "placeholder-category" ? undefined : value)}
               disabled={isSubmitting}
             >
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="-- カテゴリを選択 --" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem>-- カテゴリを選択 --</SelectItem>
+                <SelectItem value="placeholder-category">-- カテゴリを選択 --</SelectItem>
                 {categories.map(cat => (
                   <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                 ))}
@@ -164,14 +164,14 @@ export default function TaskForm({ task, onClose, onSubmit, categories, tasks, i
             </Label>
             <Select
               value={parentTaskId || ''}
-              onValueChange={(value) => setParentTaskId(value || undefined)}
+              onValueChange={(value) => setParentTaskId(value === "placeholder-parent-task" ? undefined : value)}
               disabled={isSubmitting}
             >
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="-- 親タスクを選択 --" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem>-- 親タスクを選択 --</SelectItem>
+                <SelectItem value="placeholder-parent-task">-- 親タスクを選択 --</SelectItem>
                 <SelectItem value="null">親タスクなし</SelectItem>
                 {tasks && tasks.filter(t => !t.parent_task_id && (task ? t.id !== task.id : true)).map(t => (
                   <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
