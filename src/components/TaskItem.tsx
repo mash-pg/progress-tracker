@@ -61,7 +61,7 @@ export default function TaskItem({
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     } catch (error) {
       console.error('Failed to update task status:', error);
-      alert('ステータスの更新に失敗しました。');
+          alert('ステータスの更新に失敗しました。');
       onStatusUpdate(task.id, task.app_status); // エラー時に元に戻す
     }
   };
@@ -149,11 +149,6 @@ export default function TaskItem({
               <p className="text-xs text-gray-600 dark:text-gray-300">カテゴリ: {categoryName}</p>
               <p className="text-xs text-gray-600 dark:text-gray-300">作成日時: {new Date(task.createdAt).toLocaleString()}</p>
               <p className="text-xs text-gray-600 dark:text-gray-300">期日: {task.dueDate}</p>
-              <div className="mt-2">
-                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getPriorityVariant(task.priority)}`}>
-                  {task.priority}
-                </span>
-              </div>
             </div>
           )}
         </div>
@@ -173,6 +168,11 @@ export default function TaskItem({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          <div className="mt-2">
+            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getPriorityVariant(task.priority)}`}>
+              {task.priority}
+            </span>
+          </div>
           <div className="flex items-center space-x-2 flex-wrap">
             <Button
               variant="outline"
@@ -188,6 +188,7 @@ export default function TaskItem({
             >
               <Trash2 className="h-4 w-4" />
             </Button>
+            
             {!isSubtask && onAddSubtask && (
               <Button
                 variant="outline"
@@ -196,6 +197,7 @@ export default function TaskItem({
               >
                 <PlusCircle className="h-4 w-4" />
               </Button>
+              
             )}
           </div>
         </div>
