@@ -23,6 +23,7 @@ interface Task {
   id: string;
   name: string;
   dueDate: string;
+  priority: 'High' | 'Medium' | 'Low';
   categoryId?: string;
   description?: string;
   createdAt: string;
@@ -63,7 +64,11 @@ export default function CategoriesPage() {
       ]);
 
       setCategories(categoriesRes || []);
-      setTasks(tasksRes || []);
+      const tasksWithDefaultPriority = (tasksRes || []).map((task: Task) => ({
+        ...task,
+        priority: task.priority || 'Low',
+      }));
+      setTasks(tasksWithDefaultPriority);
 
     } catch (err: any) {
       console.error('Error fetching data:', err);

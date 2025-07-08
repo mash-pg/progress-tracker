@@ -12,6 +12,7 @@ interface Task {
   app_status: 'todo' | 'in-progress' | 'completed';
   createdAt: string;
   dueDate: string;
+  priority: 'High' | 'Medium' | 'Low';
   categoryId?: string;
   description?: string;
   parent_task_id?: string;
@@ -97,6 +98,19 @@ export default function TaskItem({
     }
   };
 
+  const getPriorityVariant = (priority: Task['priority']) => {
+    switch (priority) {
+      case 'High':
+        return 'bg-red-200 text-red-800';
+      case 'Medium':
+        return 'bg-yellow-200 text-yellow-800';
+      case 'Low':
+        return 'bg-green-200 text-green-800';
+      default:
+        return 'bg-gray-200 text-gray-800';
+    }
+  };
+
   const categoryName = task.categoryId && categories.find(cat => cat.id === task.categoryId)?.name || '未分類';
 
   return (
@@ -135,6 +149,11 @@ export default function TaskItem({
               <p className="text-xs text-gray-600 dark:text-gray-300">カテゴリ: {categoryName}</p>
               <p className="text-xs text-gray-600 dark:text-gray-300">作成日時: {new Date(task.createdAt).toLocaleString()}</p>
               <p className="text-xs text-gray-600 dark:text-gray-300">期日: {task.dueDate}</p>
+              <div className="mt-2">
+                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getPriorityVariant(task.priority)}`}>
+                  {task.priority}
+                </span>
+              </div>
             </div>
           )}
         </div>

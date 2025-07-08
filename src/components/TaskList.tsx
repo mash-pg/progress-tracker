@@ -14,6 +14,7 @@ interface Task {
   app_status: 'todo' | 'in-progress' | 'completed';
   createdAt: string;
   dueDate: string;
+  priority: 'High' | 'Medium' | 'Low';
   categoryId?: string;
   parent_task_id?: string;
   subtasks?: Task[];
@@ -80,7 +81,11 @@ export default function TaskList() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data: Task[] = await response.json();
-      setTasks(data);
+      const tasksWithDefaultPriority = (data || []).map((task: Task) => ({
+        ...task,
+        priority: task.priority || 'Low',
+      }));
+      setTasks(tasksWithDefaultPriority);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -104,6 +109,7 @@ export default function TaskList() {
       app_status: 'todo',
       createdAt: new Date().toISOString(),
       dueDate: new Date().toISOString().split('T')[0],
+      priority: 'Low',
       parent_task_id: parentId,
     });
     setIsFormOpen(true);

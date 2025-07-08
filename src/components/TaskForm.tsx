@@ -11,6 +11,7 @@ interface Task {
   app_status: 'todo' | 'in-progress' | 'completed';
   createdAt: string;
   dueDate: string;
+  priority: 'High' | 'Medium' | 'Low';
   categoryId?: string;
   description?: string; // 追加: descriptionプロパティ
   parent_task_id?: string;
@@ -36,6 +37,7 @@ export default function TaskForm({ task, onClose, onSubmit, categories, tasks, i
   const [status, setStatus] = useState<Task['app_status']>(task ? task.app_status : 'todo');
   const [categoryId, setCategoryId] = useState<string | undefined>(task?.categoryId);
   const [parentTaskId, setParentTaskId] = useState<string | undefined>(task?.parent_task_id);
+  const [priority, setPriority] = useState<Task['priority']>(task ? task.priority : 'Low');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -45,12 +47,14 @@ export default function TaskForm({ task, onClose, onSubmit, categories, tasks, i
       setStatus(task.app_status);
       setCategoryId(task.categoryId);
       setParentTaskId(task.parent_task_id);
+      setPriority(task.priority);
     } else {
       // 新規作成時は今日の日付をデフォルトに
       setDueDate(new Date().toISOString().split('T')[0]);
       setStatus('todo'); // 新規作成時はステータスをtodoに設定
       setCategoryId(undefined); // 新規作成時はカテゴリをクリア
       setParentTaskId(undefined);
+      setPriority('Medium');
     }
   }, [task]);
 
@@ -85,7 +89,7 @@ export default function TaskForm({ task, onClose, onSubmit, categories, tasks, i
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, dueDate, app_status: status, categoryId, parent_task_id: parentTaskId }),
+        body: JSON.stringify({ name, dueDate, app_status: status, categoryId, parent_task_id: parentTaskId, priority }),
       });
 
       console.log('TaskForm: Response OK:', response.ok, 'Status:', response.status);
@@ -176,6 +180,25 @@ export default function TaskForm({ task, onClose, onSubmit, categories, tasks, i
                 {tasks && tasks.filter(t => !t.parent_task_id && (task ? t.id !== task.id : true)).map(t => (
                   <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="priority" className="text-right">
+              優先度:
+            </Label>
+            <Select
+              value={priority}
+              onValueChange={(value) => setPriority(value as Task['priority'])}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="優先度を選択" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="High">高</SelectItem>
+                <SelectItem value="Medium">中</SelectItem>
+                <SelectItem value="Low">低</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -15,6 +15,7 @@ interface Task {
   app_status: 'todo' | 'in-progress' | 'completed';
   createdAt: string;
   dueDate: string;
+  priority: 'High' | 'Medium' | 'Low';
   categoryId?: string;
 }
 

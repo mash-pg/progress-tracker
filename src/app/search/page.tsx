@@ -14,6 +14,7 @@ interface Task {
   app_status: 'todo' | 'in-progress' | 'completed';
   createdAt: string;
   dueDate: string;
+  priority: 'High' | 'Medium' | 'Low';
   categoryId?: string;
   description?: string;
   parent_task_id?: string;
@@ -227,7 +228,11 @@ export default function SearchPage() {
       }
 
       const data = await response.json();
-      setSearchResults(data || []);
+      const tasksWithDefaultPriority = (data || []).map((task: Task) => ({
+        ...task,
+        priority: task.priority || 'Low',
+      }));
+      setSearchResults(tasksWithDefaultPriority);
     } catch (err: any) {
       console.error('Error searching tasks:', err);
       setError(err.message);
