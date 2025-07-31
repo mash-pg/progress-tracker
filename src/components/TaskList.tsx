@@ -25,7 +25,7 @@ interface Category {
   name: string;
 }
 
-const ITEMS_PER_PAGE = 9;
+const ITEMS_PER_PAGE = 6;
 
 export default function TaskList() {
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
@@ -151,7 +151,11 @@ export default function TaskList() {
 
     for (const task of Array.from(taskMap.values())) {
       if (task.parent_task_id && taskMap.has(task.parent_task_id)) {
-        taskMap.get(task.parent_task_id)!.subtasks!.push(task);
+        const parentTask = taskMap.get(task.parent_task_id)!;
+        if (!parentTask.subtasks) {
+          parentTask.subtasks = [];
+        }
+        parentTask.subtasks.push(task);
       } else {
         rootTasks.push(task);
       }
@@ -244,7 +248,7 @@ export default function TaskList() {
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 dark:bg-gray-900">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-full sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-5xl bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8 dark:bg-gray-800">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-full sm:max-w-2xl md:max-w-4xl lg:max-w-6xl xl:max-w-7xl bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8 dark:bg-gray-800">
         <h1 className="text-center text-4xl font-extrabold text-gray-800 mb-8 dark:text-gray-100">進捗管理アプリ</h1>
 
         <DateNavigation selectedMonth={selectedMonth} onMonthChange={handleMonthChange} />
@@ -263,7 +267,7 @@ export default function TaskList() {
         {error && <p className="text-center text-red-500 text-lg dark:text-red-300">エラー: {error}</p>}
 
         {!loading && !error && (
-          <div className="task-list mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="task-list mt-8 grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-4">
             {paginatedDates.length > 0 ? (
               paginatedDates.map(date => {
                 const tasksForDate = groupedTasks[date];
