@@ -37,7 +37,7 @@ export default function TaskForm({ task, onClose, onSubmit, categories, tasks, i
   const [status, setStatus] = useState<Task['app_status']>(task ? task.app_status : 'todo');
   const [categoryId, setCategoryId] = useState<string | undefined>(task?.categoryId);
   const [parentTaskId, setParentTaskId] = useState<string | undefined>(task?.parent_task_id);
-  const [priority, setPriority] = useState<Task['priority']>(task ? task.priority : 'Low');
+  const [priority, setPriority] = useState<Task['priority']>(task ? task.priority : 'Medium');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -54,7 +54,6 @@ export default function TaskForm({ task, onClose, onSubmit, categories, tasks, i
       setStatus('todo'); // 新規作成時はステータスをtodoに設定
       setCategoryId(undefined); // 新規作成時はカテゴリをクリア
       setParentTaskId(undefined);
-      setPriority('Medium');
     }
   }, [task]);
 
@@ -202,27 +201,25 @@ export default function TaskForm({ task, onClose, onSubmit, categories, tasks, i
               </SelectContent>
             </Select>
           </div>
-          {task && (
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">
-                ステータス:
-              </Label>
-              <Select
-                value={status}
-                onValueChange={(value) => setStatus(value as Task['app_status'])}
-                disabled={isSubmitting}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="ステータスを選択" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todo">未着手</SelectItem>
-                  <SelectItem value="in-progress">作業中</SelectItem>
-                  <SelectItem value="completed">完了</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="status" className="text-right">
+              ステータス:
+            </Label>
+            <Select
+              value={status}
+              onValueChange={(value) => setStatus(value as Task['app_status'])}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="ステータスを選択" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todo">未着手</SelectItem>
+                <SelectItem value="in-progress">作業中</SelectItem>
+                <SelectItem value="completed">完了</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               キャンセル

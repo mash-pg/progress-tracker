@@ -69,7 +69,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { name, dueDate, categoryId, description, app_status, parent_task_id } = body;
+  const { name, dueDate, categoryId, description, app_status, parent_task_id, priority } = body;
 
   if (!name || !dueDate) {
     return NextResponse.json({ message: 'Name and dueDate are required' }, { status: 400 });
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
 
   const { data: newTask, error } = await supabase
     .from('tasks')
-    .insert([{ id: newId, name, "createdAt": new Date().toISOString(), "dueDate": dueDate, "categoryId": categoryId, description, app_status: app_status, user_id: user.id, parent_task_id }]) // user_idとparent_task_idを追加
+    .insert([{ id: newId, name, "createdAt": new Date().toISOString(), "dueDate": dueDate, "categoryId": categoryId, description, app_status: app_status, user_id: user.id, parent_task_id, priority }]) // user_idとparent_task_idを追加
     .select();
 
   if (error) {
@@ -94,12 +94,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Error creating task', error: error.message }, { status: 500 });
   }
   
-  const resultTask = {
-    ...newTask[0],
-    app_status: app_status
-  };
-
-  return NextResponse.json(resultTask, { status: 201 });
+  return NextResponse.json(newTask[0], { status: 201 });
 }
 
 export async function DELETE(request: Request) {
