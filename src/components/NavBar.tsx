@@ -5,10 +5,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu } from 'lucide-react'; // ハンバーガーアイコン
+import { createClient } from '@/lib/supabase/client'; // Supabaseクライアントをインポート
 
-export default function NavBar({ user }: { user: any }) {
+export default function NavBar() {
   const [darkMode, setDarkMode] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null); // ユーザー情報を保持するステート
+  const supabase = createClient(); // Supabaseクライアントを初期化
 
   useEffect(() => {
     // 開発環境でのみ特定の警告を抑制
@@ -37,6 +40,24 @@ export default function NavBar({ user }: { user: any }) {
     }
   }, []);
 
+  useEffect(() => {
+    // ユーザー情報を取得
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+    };
+    getUser();
+
+    // 認証状態の変化を監視
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setCurrentUser(session?.user || null);
+    });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
+  }, [supabase]);
+
   const toggleDarkMode = () => {
     setDarkMode(prevMode => {
       const newMode = !prevMode;
@@ -64,14 +85,17 @@ export default function NavBar({ user }: { user: any }) {
             <div className="p-6 flex flex-col h-full">
               <h2 className="text-2xl font-bold mb-8 text-gray-800 dark:text-gray-100">メニュー</h2>
               <nav className="flex flex-col space-y-4 flex-grow">
-                {user ? (
+                {currentUser ? (
                   <>
-                    <p className="text-gray-800 dark:text-gray-100 mb-4">ようこそ、{user.user_metadata.username || user.email}さん</p>
+                    <p className="text-gray-800 dark:text-gray-100 mb-4">ようこそ、{currentUser.user_metadata.username || currentUser.email}さん</p>
                     <Link href="/" className="text-lg font-medium text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400" onClick={() => setIsSheetOpen(false)}>
                       タスク一覧
                     </Link>
                     <Link href="/search" className="text-lg font-medium text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400" onClick={() => setIsSheetOpen(false)}>
                       タスク検索
+                    </Link>
+                    <Link href="/statistics" className="text-lg font-medium text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400" onClick={() => setIsSheetOpen(false)}>
+                      タスク統計
                     </Link>
                     <Link href="/categories" className="text-lg font-medium text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400" onClick={() => setIsSheetOpen(false)}>
                       カテゴリ管理
@@ -101,9 +125,9 @@ export default function NavBar({ user }: { user: any }) {
 
       {/* デスクトップ表示時のユーザー情報とダークモード切り替え（左端に移動） */}
       <div className="hidden md:flex items-center">
-        {user ? (
+        {currentUser ? (
           <div className="flex items-center">
-            <span className="mr-4">{user.user_metadata.username || user.email}</span>
+            <span className="mr-4">{currentUser.user_metadata.username || currentUser.email}</span>
             <form action="/auth/signout" method="post">
               <Button type="submit" variant="link" className="text-white hover:no-underline">ログアウト</Button>
             </form>
@@ -123,13 +147,16 @@ export default function NavBar({ user }: { user: any }) {
       </div>
       {/* デスクトップ表示時のナビゲーションリンク（右端に移動） */}
       <div className="hidden md:flex items-center">
-        {user && (
+        {currentUser && (
           <>
             <Link href="/" className="hover:underline text-lg font-medium">
               タスク一覧
             </Link>
             <Link href="/categories" className="hover:underline text-lg font-medium ml-4">
               カテゴリ管理
+            </Link>
+            <Link href="/statistics" className="hover:underline text-lg font-medium ml-4">
+              タスク統計
             </Link>
             <Link href="/search" className="hover:underline text-lg font-medium ml-4">
               タスク検索

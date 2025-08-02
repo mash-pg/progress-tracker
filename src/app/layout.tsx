@@ -20,7 +20,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         "min-h-screen bg-background font-sans antialiased",
         inter.variable
       )}>
-        <NavBar user={user} />
+        <NavBar />
         {children}
       </body>
     </html>
