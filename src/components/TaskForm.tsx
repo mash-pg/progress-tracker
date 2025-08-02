@@ -131,15 +131,15 @@ export default function TaskForm({ task, onClose, onSubmit, categories, tasks, i
             <Label htmlFor="dueDate" className="text-right">
               期日:
             </Label>
-            <Input
+            <input
               type="date"
               id="dueDate"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
               required
               disabled={isSubmitting}
-              className="col-span-3"
-            />
+              className="col-span-3 shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"         
+          />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="category" className="text-right">
